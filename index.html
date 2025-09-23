@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Voice Dungeon Explorer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; padding: 0; background: #000; 
+            display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; font-family: Arial, sans-serif; 
+            touch-action: manipulation; 
+        }
+        
+        .mic-button {
+            width: 95vw; height: 85vh; max-width: 400px; max-height: 400px;
+            border-radius: 50%; background: #ff4444; border: 8px solid #ffffff;
+            color: #ffffff; font-size: 32px; font-weight: bold; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; text-shadow: 2px 2px 4px #000;
+            transition: all 0.2s ease; -webkit-tap-highlight-color: transparent;
+        }
+        
+        .mic-button:active { transform: scale(0.95); }
+        .mic-icon { font-size: 80px; margin-bottom: 20px; }
+        .listening { background: #44ff44 !important; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        
+        .start-button { background: #4444ff !important; animation: startPulse 2s infinite; }
+        @keyframes startPulse { 0%, 100% { background: #4444ff !important; } 50% { background: #6666ff !important; } }
+        
+        #debug { 
+            position: fixed; top: 10px; left: 10px; color: #fff; font-size: 12px; 
+            background: rgba(0,0,0,0.8); padding: 8px; border-radius: 4px; max-width: 280px;
+            font-family: monospace; line-height: 1.4;
+        }
+        
+        @media (max-width: 480px) {
+            .mic-button { width: 98vw; height: 88vh; font-size: 28px; border: 6px solid #ffffff; }
+            .mic-icon { font-size: 70px; margin-bottom: 15px; }
+            #debug { font-size: 10px; max-width: 200px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="debug">Loading...</div>
+    <button id="micButton" class="mic-button start-button" onclick="handleClick()">
+        <div class="mic-icon">🎤</div>
+        <div id="micText">TAP TO BEGIN</div>
+    </button>
+
+    <script>
+        const debug = document.getElementById('debug');
+        const micButton = document.getElementById('micButton');
+        const micText = document.getElementById('micText');
+        
+        function log(msg) {
+            console.log(msg);
+            debug.innerHTML = msg + '<br>' + debug.innerHTML.split('<br>').slice(0, 4).join('<br>');
+        }
+        
+        // === GAME STATE ===
+        const game = {
+            player: { class: '', health: 100, maxHealth: 100, inventory: [], position: { x: 0, y: 0 } },
+            currentRoom: null, map: {}, listening: false, started: false, needsClass: true,
+            speechReady: false, initialized: false
+        };
+
+        const classes = {
+            warrior: { name: 'Warrior', health: 120, items: ['Iron Sword', 'Health Potion'] },
+            mage: { name: 'Mage', health: 80, items: ['Magic Staff', 'Mana Potion'] },
+            rogue: { name: 'Rogue', health: 100, items: ['Steel Dagger', 'Lockpicks'] }
+        };
+
+        // === SPEECH ===
+        function speak(text, callback) {
+            log('SPEAK: ' + text.substring(0, 30) + '...');
+            
+            if (!window.speechSynthesis) {
+                log('No speech synthesis available');
+                if (callback) setTimeout(callback, 1000);
+                return;
+            }
+
+            try {
+                speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.7;  // Slower for accessibility
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                utterance.lang = 'en-US';
+                
+                if (callback) {
+                    utterance.onend = callback;
+                    utterance.onerror = () => {
+                        log('Speech error occurred');
+                        callback();
+                    };
+                }
+                
+                speechSynthesis.speak(utterance);
+            } catch (error) {
+                log('Speech failed: ' + error.message);
+                if (callback) setTimeout(callback, 1000);
+            }
+        }
+
+        // === VOICE RECOGNITION ===
+        let recognition = null;
+        
+        function startListening() {
+            if (!window.webkitSpeechRecognition && !window.SpeechRecognition) {
+                log('Voice recognition not supported');
+                speak('Voice recognition is not supported on this browser. Please try Chrome or Edge.');
+                return;
+            }
+            
+            if (game.listening) {
+                stopListening();
+                return;
+            }
+
+            log('Requesting microphone permission...');
+            
+            try {
+                const Recognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+                recognition = new Recognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+                recognition.maxAlternatives = 1;
+
+                recognition.onstart = function() {
+                    log('Listening started');
+                    game.listening = true;
+                    micButton.classList.add('listening');
+                    micButton.classList.remove('start-button');
+                    micText.textContent = 'LISTENING...';
+                };
+
+                recognition.onresult = function(event) {
+                    const command = event.results[0][0].transcript.toLowerCase().trim();
+                    const confidence = Math.round(event.results[0][0].confidence * 100);
+                    log(`HEARD: "${command}" (${confidence}%)`);
+                    
+                    stopListening();
+                    
+                    // Process command after brief delay
+                    setTimeout(() => processCommand(command), 500);
+                };
+
+                recognition.onerror = function(event) {
+                    log('Voice error: ' + event.error);
+                    stopListening();
+                    
+                    switch(event.error) {
+                        case 'not-allowed':
+                            speak('Microphone permission was denied. Please allow microphone access and refresh the page.');
+                            break;
+                        case 'no-speech':
+                            speak('I did not hear any speech. Please speak closer to the microphone and try again.');
+                            break;
+                        case 'audio-capture':
+                            speak('No microphone found. Please check your device has a working microphone.');
+                            break;
+                        case 'network':
+                            speak('Network error occurred. Please check your internet connection.');
+                            break;
+                        default:
+                            speak('Voice recognition error occurred. Please try speaking again.');
+                    }
+                };
+
+                recognition.onend = function() {
+                    log('Recognition ended');
+                    stopListening();
+                };
+
+                recognition.start();
+
+            } catch (error) {
+                log('Recognition setup failed: ' + error.message);
+                speak('Failed to start voice recognition. Please try again.');
+                stopListening();
+            }
+        }
+
+        function stopListening() {
+            game.listening = false;
+            micButton.classList.remove('listening');
+            micText.textContent = 'SPEAK';
+            
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    // Ignore cleanup errors
+                }
+                recognition = null;
+            }
+        }
+
+        // === GAME INITIALIZATION ===
+        function initializeGame() {
+            log('Initializing game...');
+            
+            // Activate speech with user gesture
+            speak(' ', () => {
+                game.speechReady = true;
+                game.initialized = true;
+                
+                micButton.classList.remove('start-button');
+                micText.textContent = 'SPEAK';
+                
+                const welcome = "Welcome to Voice Dungeon Explorer! This game is designed for voice control. " +
+                    "Press the red button and say warrior for a strong fighter, mage for a magic user, or rogue for a sneaky character. " +
+                    "Choose your class now.";
+                
+                speak(welcome, () => {
+                    log('Game ready - waiting for class selection');
+                });
+            });
+        }
+
+        function handleClick() {
+            if (!game.initialized) {
+                initializeGame();
+            } else {
+                startListening();
+            }
+        }
+
+        // === COMMAND PROCESSING ===
+        function processCommand(command) {
+            log('PROCESSING: ' + command);
+            
+            // Class selection
+            if (game.needsClass) {
+                if (command.includes('warrior') || command.includes('fighter')) {
+                    selectClass('warrior');
+                } else if (command.includes('mage') || command.includes('wizard') || command.includes('magic')) {
+                    selectClass('mage');
+                } else if (command.includes('rogue') || command.includes('thief') || command.includes('sneak')) {
+                    selectClass('rogue');
+                } else {
+                    speak('Please say warrior, mage, or rogue to choose your character class.');
+                }
+                return;
+            }
+
+            if (!game.started) return;
+
+            // Movement
+            if (command.includes('north') || command.includes('forward') || command.includes('ahead')) {
+                movePlayer('north');
+            } else if (command.includes('south') || command.includes('back') || command.includes('backward')) {
+                movePlayer('south');
+            } else if (command.includes('east') || command.includes('right')) {
+                movePlayer('east');
+            } else if (command.includes('west') || command.includes('left')) {
+                movePlayer('west');
+            }
+            
+            // Combat
+            else if (command.includes('attack') || command.includes('fight') || command.includes('battle') || command.includes('hit')) {
+                if (game.currentRoom && game.currentRoom.enemy) {
+                    combat();
+                } else {
+                    speak('There is nothing here to fight.');
+                }
+            }
+            
+            // Exploration
+            else if (command.includes('search') || command.includes('look') || command.includes('examine') || command.includes('explore')) {
+                searchRoom();
+            }
+            
+            // Inventory
+            else if (command.includes('inventory') || command.includes('items') || command.includes('equipment') || command.includes('gear')) {
+                listInventory();
+            }
+            
+            // Status
+            else if (command.includes('status') || command.includes('health') || command.includes('condition') || command.includes('stats')) {
+                const className = classes[game.player.class].name;
+                speak(`You are a ${className}. Your health is ${game.player.health} out of ${game.player.maxHealth}. You are at position ${game.player.position.x}, ${game.player.position.y}.`);
+            }
+            
+            // Help
+            else if (command.includes('help') || command.includes('command') || command.includes('what can i do')) {
+                speak('Say: go north, go south, go east, go west, attack, search, inventory, status, or help. You can also say directions without the word go.');
+            }
+            
+            // Repeat room description
+            else if (command.includes('where') || command.includes('describe') || command.includes('repeat')) {
+                if (game.currentRoom) {
+                    speak(game.currentRoom.description);
+                }
+            }
+            
+            // Unknown command
+            else {
+                speak('I do not understand that command. Say help to hear what you can do, or try being more specific.');
+            }
+        }
+
+        // === GAME LOGIC ===
+        function selectClass(className) {
+            const classData = classes[className];
+            game.player.class = className;
+            game.player.health = classData.health;
+            game.player.maxHealth = classData.health;
+            game.player.inventory = [...classData.items];
+            
+            game.needsClass = false;
+            game.started = true;
+            game.map = createMap();
+            
+            const message = `You are now a ${classData.name}! You have ${classData.health} health points. ` +
+                `Your starting equipment includes ${classData.items.join(' and ')}. ` +
+                `You stand at the entrance to a dark dungeon. Say go north to begin your adventure!`;
+            
+            speak(message, () => {
+                setTimeout(() => enterRoom(0, 0), 3000);
+            });
+        }
+
+        function createMap() {
+            return {
+                '0,0': {
+                    description: 'You are at the dungeon entrance. Cold stone walls surround you. There are passages leading north and east into the darkness.',
+                    enemy: null,
+                    treasure: null,
+                    visited: true
+                },
+                '0,1': {
+                    description: 'You enter a damp chamber. Water drips from the ceiling. The air smells musty and old. There is a glint of something in the corner.',
+                    enemy: null,
+                    treasure: 'Health Potion',
+                    visited: false
+                },
+                '1,0': {
+                    description: 'This is a dark corridor with rough stone walls. You hear growling sounds echoing from the shadows ahead.',
+                    enemy: { name: 'Goblin', health: 25, maxHealth: 25 },
+                    treasure: null,
+                    visited: false
+                },
+                '1,1': {
+                    description: 'You have reached a large chamber with a high ceiling. Ancient symbols are carved into the walls. The room feels strangely peaceful.',
+                    enemy: null,
+                    treasure: 'Magic Crystal',
+                    visited: false
+                },
+                '0,2': {
+                    description: 'This chamber has collapsed partially. Rubble blocks some passages, but there is a chest visible among the debris.',
+                    enemy: null,
+                    treasure: 'Gold Coins',
+                    visited: false
+                },
+                '2,0': {
+                    description: 'You enter what appears to be an old guard room. Rusty weapons hang on the walls, and bones litter the floor. Something stirs in the darkness.',
+                    enemy: { name: 'Skeleton Warrior', health: 40, maxHealth: 40 },
+                    treasure: 'Iron Shield',
+                    visited: false
+                }
+            };
+        }
+
+        function movePlayer(direction) {
+            const pos = game.player.position;
+            let newX = pos.x, newY = pos.y;
+            
+            if (direction === 'north') newY += 1;
+            else if (direction === 'south') newY -= 1;
+            else if (direction === 'east') newX += 1;
+            else if (direction === 'west') newX -= 1;
+            
+            const roomKey = `${newX},${newY}`;
+            const room = game.map[roomKey];
+            
+            if (room) {
+                game.player.position = { x: newX, y: newY };
+                speak(`You move ${direction}.`, () => {
+                    setTimeout(() => enterRoom(newX, newY), 1500);
+                });
+            } else {
+                speak('You cannot go that way. There is a solid wall blocking your path.');
+            }
+        }
+
+        function enterRoom(x, y) {
+            const roomKey = `${x},${y}`;
+            const room = game.map[roomKey];
+            game.currentRoom = room;
+            
+            if (!room.visited) {
+                room.visited = true;
+                speak(room.description, () => {
+                    setTimeout(() => {
+                        if (room.enemy) {
+                            speak(`A ${room.enemy.name} blocks your path! It has ${room.enemy.health} health. Say attack to fight it!`);
+                        } else if (room.treasure) {
+                            speak('You notice something valuable in this room. Say search to investigate.');
+                        } else {
+                            speak('This room appears empty. You can continue exploring in other directions.');
+                        }
+                    }, 2000);
+                });
+            } else {
+                speak('You return to a room you have visited before.', () => {
+                    if (room.enemy) {
+                        setTimeout(() => speak(`The ${room.enemy.name} is still here, ready to fight!`), 1000);
+                    }
+                });
+            }
+        }
+
+        function combat() {
+            const enemy = game.currentRoom.enemy;
+            if (!enemy) return;
+            
+            // Simple combat system
+            const playerDamage = Math.floor(Math.random() * 15) + 8; // 8-22 damage
+            const enemyDamage = Math.floor(Math.random() * 10) + 5;  // 5-14 damage
+            
+            enemy.health -= playerDamage;
+            
+            if (enemy.health <= 0) {
+                speak(`You strike the ${enemy.name} with a powerful blow! The creature falls defeated. You have won the battle!`, () => {
+                    game.currentRoom.enemy = null;
+                    
+                    // Chance for loot
+                    if (Math.random() < 0.6) {
+                        const loot = ['Health Potion', 'Gold Coins', 'Magic Ring'][Math.floor(Math.random() * 3)];
+                        game.player.inventory.push(loot);
+                        setTimeout(() => speak(`You find ${loot} among the creature's belongings!`), 2000);
+                    }
+                });
+            } else {
+                speak(`You attack the ${enemy.name} for ${playerDamage} damage! It now has ${enemy.health} health remaining.`, () => {
+                    game.player.health -= enemyDamage;
+                    setTimeout(() => {
+                        speak(`The ${enemy.name} strikes back, dealing ${enemyDamage} damage to you! Your health is now ${game.player.health}.`, () => {
+                            if (game.player.health <= 0) {
+                                setTimeout(() => {
+                                    speak('You have been defeated! But your adventure is not over. You awaken back at the dungeon entrance with half your health restored.', () => {
+                                        game.player.health = Math.floor(game.player.maxHealth / 2);
+                                        game.player.position = { x: 0, y: 0 };
+                                        setTimeout(() => enterRoom(0, 0), 3000);
+                                    });
+                                }, 1500);
+                            }
+                        });
+                    }, 2000);
+                });
+            }
+        }
+
+        function searchRoom() {
+            const room = game.currentRoom;
+            
+            if (room.enemy) {
+                speak('It is too dangerous to search while there is an enemy here. You must fight it first.');
+                return;
+            }
+            
+            if (room.treasure) {
+                speak(`You search the room carefully and find ${room.treasure}! It has been added to your inventory.`, () => {
+                    game.player.inventory.push(room.treasure);
+                    room.treasure = null;
+                });
+            } else {
+                speak('You search the room thoroughly, but find nothing of value. The room is empty.');
+            }
+        }
+
+        function listInventory() {
+            if (game.player.inventory.length === 0) {
+                speak('Your inventory is empty. You are not carrying any items.');
+            } else {
+                const itemList = game.player.inventory.join(', ');
+                speak(`You are currently carrying: ${itemList}. You have ${game.player.inventory.length} items in total.`);
+            }
+        }
+
+        // === STARTUP ===
+        window.addEventListener('load', () => {
+            log('Voice Dungeon Explorer loaded');
+            log('Secure: ' + (window.isSecureContext || location.protocol === 'https:'));
+            log('Speech: ' + !!window.speechSynthesis);
+            log('Recognition: ' + !!(window.webkitSpeechRecognition || window.SpeechRecognition));
+            
+            if (!window.isSecureContext && location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                log('WARNING: Needs HTTPS for microphone access');
+                micText.textContent = 'NEEDS HTTPS';
+                micButton.classList.remove('start-button');
+                speak('This game requires HTTPS to access the microphone. Please use a secure connection.');
+            }
+        });
+
+        // Prevent accidental zoom
+        let lastTouch = 0;
+        document.addEventListener('touchend', (event) => {
+            const now = Date.now();
+            if (now - lastTouch <= 300) event.preventDefault();
+            lastTouch = now;
+        }, false);
+
+        // Space bar shortcut
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                handleClick();
+            }
+        });
+    </script>
+</body>
+</html>
