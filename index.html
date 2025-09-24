@@ -105,11 +105,14 @@
                 if (synth) {
                     synth.cancel();
                     let utterance = new SpeechSynthesisUtterance(text);
-                    utterance.rate = 1.0; // Normal speed
+                    utterance.rate = 0.9; // 10% slower than normal
                     utterance.pitch = 1.0;
                     utterance.volume = 1.0;
                     
-                    utterance.onend = () => resolve();
+                    utterance.onend = () => {
+                        // Add a small pause after speaking before resolving
+                        setTimeout(() => resolve(), 300);
+                    };
                     utterance.onerror = () => resolve();
                     
                     synth.speak(utterance);
@@ -158,7 +161,10 @@
 
             recognition.onend = function() {
                 isListening = false;
-                setTimeout(startListening, 2000);
+                // Don't automatically restart if speech is still happening
+                if (!synth.speaking) {
+                    setTimeout(startListening, 2000);
+                }
             };
 
             speak("Welcome to Echo Dungeon! Choose your class by saying: warrior, mage, or rogue.");
