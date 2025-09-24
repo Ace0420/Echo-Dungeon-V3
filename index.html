@@ -98,17 +98,25 @@
         let currentRoom = 'entrance';
 
         function speak(text) {
-            console.log('Speaking:', text);
-            document.getElementById('gameText').innerHTML += '<p>' + text + '</p>';
-            
-            if (synth) {
-                synth.cancel();
-                let utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.2; // Faster speech
-                utterance.pitch = 1.0;
-                utterance.volume = 1.0;
-                synth.speak(utterance);
-            }
+            return new Promise((resolve) => {
+                console.log('Speaking:', text);
+                document.getElementById('gameText').innerHTML += '<p>' + text + '</p>';
+                
+                if (synth) {
+                    synth.cancel();
+                    let utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 1.0; // Normal speed
+                    utterance.pitch = 1.0;
+                    utterance.volume = 1.0;
+                    
+                    utterance.onend = () => resolve();
+                    utterance.onerror = () => resolve();
+                    
+                    synth.speak(utterance);
+                } else {
+                    resolve();
+                }
+            });
         }
 
         function startGame() {
@@ -167,85 +175,85 @@
             }
         }
 
-        function processCommand(command) {
+        async function processCommand(command) {
             if (!gameStarted) {
                 if (command.includes('warrior')) {
                     player.class = 'warrior';
                     gameStarted = true;
-                    speak("You are now a warrior! Your adventure begins.");
-                    describeLocation();
+                    await speak("You are now a warrior! Your adventure begins.");
+                    await describeLocation();
                 } else if (command.includes('mage') || command.includes('wizard')) {
                     player.class = 'mage';
                     gameStarted = true;
-                    speak("You are now a mage! Your adventure begins.");
-                    describeLocation();
+                    await speak("You are now a mage! Your adventure begins.");
+                    await describeLocation();
                 } else if (command.includes('rogue') || command.includes('thief')) {
                     player.class = 'rogue';
                     gameStarted = true;
-                    speak("You are now a rogue! Your adventure begins.");
-                    describeLocation();
+                    await speak("You are now a rogue! Your adventure begins.");
+                    await describeLocation();
                 } else {
-                    speak("Please say warrior, mage, or rogue to choose your class.");
+                    await speak("Please say warrior, mage, or rogue to choose your class.");
                 }
                 return;
             }
 
             // Movement
             if (command.includes('north') || command.includes('go north')) {
-                movePlayer('north');
+                await movePlayer('north');
             } else if (command.includes('south') || command.includes('go south')) {
-                movePlayer('south');
+                await movePlayer('south');
             } else if (command.includes('east') || command.includes('go east')) {
-                movePlayer('east');
+                await movePlayer('east');
             } else if (command.includes('west') || command.includes('go west')) {
-                movePlayer('west');
+                await movePlayer('west');
             }
             // Combat
             else if (command.includes('attack') || command.includes('fight')) {
-                fight();
+                await fight();
             }
             // Search
             else if (command.includes('search') || command.includes('look')) {
-                search();
+                await search();
             }
             // Inventory
             else if (command.includes('inventory') || command.includes('items')) {
-                showInventory();
+                await showInventory();
             }
             // Use items
             else if (command.includes('use potion') || command.includes('drink potion')) {
-                usePotion();
+                await usePotion();
             }
             // Status
             else if (command.includes('status') || command.includes('health')) {
-                speak(`Your health is ${player.health}. You are a ${player.class}.`);
+                await speak(`Your health is ${player.health}. You are a ${player.class}.`);
             }
             // Location
             else if (command.includes('where') || command.includes('location')) {
-                describeLocation();
+                await describeLocation();
             }
             // Help
             else if (command.includes('help')) {
-                speak("Say: north, south, east, west to move. Say attack to fight. Say search to look for items. Say inventory to check items. Say status for health.");
+                await speak("Say: north, south, east, west to move. Say attack to fight. Say search to look for items. Say inventory to check items. Say status for health.");
             }
             else {
-                speak("I don't understand. Say help for commands.");
+                await speak("I don't understand. Say help for commands.");
             }
         }
 
-        function movePlayer(direction) {
+        async function movePlayer(direction) {
             let room = rooms[currentRoom];
             if (room.exits[direction]) {
                 currentRoom = room.exits[direction];
                 player.location = currentRoom;
-                speak(`You go ${direction}.`);
-                setTimeout(describeLocation, 1000);
+                await speak(`You go ${direction}.`);
+                await describeLocation();
             } else {
-                speak(`You cannot go ${direction} from here.`);
+                await speak(`You cannot go ${direction} from here.`);
             }
         }
 
-        function describeLocation() {
+        async function describeLocation() {
             let room = rooms[currentRoom];
             let description = room.description;
             
@@ -257,13 +265,13 @@
                 description += ` You see: ${room.items.join(', ')}.`;
             }
             
-            speak(description);
+            await speak(description);
         }
 
-        function fight() {
+        async function fight() {
             let room = rooms[currentRoom];
             if (room.monsters.length === 0) {
-                speak("Nothing to fight here.");
+                await speak("Nothing to fight here.");
                 return;
             }
             
@@ -272,13 +280,13 @@
             let monsterRoll = Math.floor(Math.random() * 20) + 1;
             
             if (playerRoll >= monsterRoll) {
-                speak(`You defeat the ${monster}!`);
+                await speak(`You defeat the ${monster}!`);
                 room.monsters = [];
             } else {
-                speak(`The ${monster} hits you! You lose health.`);
+                await speak(`The ${monster} hits you! You lose health.`);
                 player.health -= 20;
                 if (player.health <= 0) {
-                    speak("You died! Game over. Say warrior, mage, or rogue to restart.");
+                    await speak("You died! Game over. Say warrior, mage, or rogue to restart.");
                     gameStarted = false;
                     player.health = 100;
                     currentRoom = 'entrance';
@@ -286,33 +294,33 @@
             }
         }
 
-        function search() {
+        async function search() {
             let room = rooms[currentRoom];
             if (room.items.length > 0) {
                 let item = room.items.shift();
                 player.inventory.push(item);
-                speak(`You found a ${item}!`);
+                await speak(`You found a ${item}!`);
             } else {
-                speak("You found nothing.");
+                await speak("You found nothing.");
             }
         }
 
-        function showInventory() {
+        async function showInventory() {
             if (player.inventory.length === 0) {
-                speak("Your inventory is empty.");
+                await speak("Your inventory is empty.");
             } else {
-                speak(`You have: ${player.inventory.join(', ')}.`);
+                await speak(`You have: ${player.inventory.join(', ')}.`);
             }
         }
 
-        function usePotion() {
+        async function usePotion() {
             let potionIndex = player.inventory.indexOf('health potion');
             if (potionIndex !== -1) {
                 player.inventory.splice(potionIndex, 1);
                 player.health = Math.min(100, player.health + 50);
-                speak(`You drink the potion. Health restored to ${player.health}.`);
+                await speak(`You drink the potion. Health restored to ${player.health}.`);
             } else {
-                speak("You don't have a health potion.");
+                await speak("You don't have a health potion.");
             }
         }
     </script>
