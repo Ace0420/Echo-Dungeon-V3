@@ -3,453 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Echo Dungeon - Voice Adventure</title>
+    <title>Echo Dungeon</title>
     <style>
-        body { margin: 0; padding: 0; background: #000; color: #fff; font-size: 0; overflow: hidden; }
-        #voiceActivator { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-                         background: transparent; border: none; cursor: pointer; z-index: 1000; }
-        .sr-only { position: absolute !important; left: -10000px; }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        
+        #startButton {
+            width: 300px;
+            height: 100px;
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            border-radius: 10px;
+            margin: 50px auto;
+            display: block;
+        }
+        
+        #gameText {
+            background-color: #222;
+            padding: 20px;
+            margin: 20px auto;
+            border-radius: 10px;
+            max-width: 600px;
+            min-height: 200px;
+        }
     </style>
 </head>
 <body>
-    <button id="voiceActivator" aria-label="Click anywhere to activate voice">
-        <span class="sr-only">Echo Dungeon - Click anywhere to speak</span>
+    <h1>Echo Dungeon</h1>
+    
+    <button id="startButton" onclick="startGame()">
+        CLICK TO START VOICE GAME
     </button>
-    <div id="gameStatus" role="status" aria-live="assertive" class="sr-only">Voice game loaded</div>
+    
+    <div id="gameText">
+        <p>Click the red button above to begin your voice-controlled adventure!</p>
+        <p>Make sure to allow microphone access when prompted.</p>
+    </div>
 
     <script>
-        class SpeechManager {
-            constructor() {
-                this.synth = window.speechSynthesis;
-                this.voices = [];
-                this.currentVoice = null;
-                this.isInitialized = false;
-                this.settings = { rate: 1.3, pitch: 1.0, volume: 1.0, lang: 'en-US' };
-                this.init();
-            }
-            
-            init() {
-                if (this.synth) {
-                    this.loadVoices();
-                } else {
-                    alert('Speech not supported. Please use Chrome or Edge.');
-                }
-            }
-            
-            loadVoices() {
-                this.voices = this.synth.getVoices();
-                if (this.voices.length === 0) {
-                    this.synth.addEventListener('voiceschanged', () => {
-                        this.voices = this.synth.getVoices();
-                        this.selectBestVoice();
-                    });
-                } else {
-                    this.selectBestVoice();
-                }
-            }
-            
-            selectBestVoice() {
-                const preferred = ['Microsoft Zira', 'Google US English Female', 'Karen', 'Alex'];
-                for (const p of preferred) {
-                    const voice = this.voices.find(v => v.name.includes(p));
-                    if (voice) { this.currentVoice = voice; break; }
-                }
-                if (!this.currentVoice) {
-                    this.currentVoice = this.voices.find(v => v.lang.includes('en')) || this.voices[0];
-                }
-                this.isInitialized = true;
-            }
-            
-            speak(text, options = {}) {
-                return new Promise((resolve) => {
-                    if (!this.synth || !this.isInitialized) {
-                        setTimeout(() => this.speak(text, options).then(resolve), 200);
-                        return;
-                    }
-                    
-                    this.synth.cancel();
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.rate = options.rate || this.settings.rate;
-                    utterance.pitch = options.pitch || this.settings.pitch;
-                    utterance.volume = options.volume || this.settings.volume;
-                    if (this.currentVoice) utterance.voice = this.currentVoice;
-                    
-                    utterance.onend = () => resolve();
-                    utterance.onerror = () => resolve();
-                    this.synth.speak(utterance);
-                });
-            }
-            
-            stop() { if (this.synth) this.synth.cancel(); }
-            isSpeaking() { return this.synth ? this.synth.speaking : false; }
-        }
-
-        class GameState {
-            constructor() {
-                this.player = { health: 100, maxHealth: 100, class: null, level: 1, inventory: [], location: 'entrance' };
-                this.gameStarted = false;
-                this.currentRoom = null;
-                this.rooms = {
-                    entrance: {
-                        description: "You stand at the entrance of an ancient dungeon. Stone passages lead north and east into darkness.",
-                        exits: { north: 'corridor', east: 'chamber' },
-                        items: ['torch'], monsters: []
-                    },
-                    corridor: {
-                        description: "A narrow stone corridor with ancient runes. You can go south to entrance or north deeper.",
-                        exits: { south: 'entrance', north: 'treasury' },
-                        items: ['health potion'], monsters: ['goblin']
-                    },
-                    chamber: {
-                        description: "A circular chamber with pale light from above. Passages lead west to entrance and north.",
-                        exits: { west: 'entrance', north: 'boss_room' },
-                        items: ['mana crystal', 'old sword'], monsters: ['skeleton']
-                    },
-                    treasury: {
-                        description: "A treasure chamber gleaming with gold. This is the dungeon's treasure vault.",
-                        exits: { south: 'corridor' },
-                        items: ['treasure chest', 'magic scroll'], monsters: ['guardian']
-                    },
-                    boss_room: {
-                        description: "The final throne room where dark magic pulses. This is the dungeon master's lair.",
-                        exits: { south: 'chamber' },
-                        items: ['legendary crown'], monsters: ['dungeon overlord']
-                    }
-                };
-            }
-        }
-
-        const speechManager = new SpeechManager();
-        const gameState = new GameState();
+        let synth = window.speechSynthesis;
         let recognition = null;
+        let gameStarted = false;
         let isListening = false;
-        let gameInitialized = false;
+        
+        let player = {
+            health: 100,
+            class: null,
+            location: 'entrance',
+            inventory: []
+        };
+        
+        let rooms = {
+            entrance: {
+                description: "You stand at the entrance of a dark dungeon. You can go north or east.",
+                exits: { north: 'corridor', east: 'chamber' },
+                items: ['torch'],
+                monsters: []
+            },
+            corridor: {
+                description: "A stone corridor. You can go south to entrance or north to treasury.",
+                exits: { south: 'entrance', north: 'treasury' },
+                items: ['health potion'],
+                monsters: ['goblin']
+            },
+            chamber: {
+                description: "A round chamber. You can go west to entrance or north to boss room.",
+                exits: { west: 'entrance', north: 'boss_room' },
+                items: ['sword'],
+                monsters: ['skeleton']
+            },
+            treasury: {
+                description: "A treasure room full of gold. You can go south to corridor.",
+                exits: { south: 'corridor' },
+                items: ['treasure'],
+                monsters: ['guardian']
+            },
+            boss_room: {
+                description: "The final room with a throne. You can go south to chamber.",
+                exits: { south: 'chamber' },
+                items: ['crown'],
+                monsters: ['boss']
+            }
+        };
+        
+        let currentRoom = 'entrance';
 
-        async function speakGameText(message) {
-            await speechManager.speak(message);
+        function speak(text) {
+            console.log('Speaking:', text);
+            document.getElementById('gameText').innerHTML += '<p>' + text + '</p>';
+            
+            if (synth) {
+                synth.cancel();
+                let utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.2; // Faster speech
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                synth.speak(utterance);
+            }
         }
 
-        async function speakQuick(message) {
-            await speechManager.speak(message, { rate: speechManager.settings.rate * 1.2 });
-        }
-
-        async function speakImportant(message) {
-            await speechManager.speak(message, { rate: speechManager.settings.rate * 0.9 });
-        }
-
-        function initializeVoiceRecognition() {
+        function startGame() {
+            document.getElementById('startButton').style.display = 'none';
+            
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert("Voice recognition requires Chrome, Edge, or Safari.");
-                return false;
+                speak("Sorry, voice recognition is not supported. Please use Chrome or Edge browser.");
+                return;
             }
 
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
+            
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.lang = 'en-US';
 
-            recognition.onstart = () => { isListening = true; };
-            recognition.onresult = (event) => {
-                const command = event.results[0][0].transcript.toLowerCase().trim();
+            recognition.onstart = function() {
+                isListening = true;
+                console.log('Listening started');
+            };
+
+            recognition.onresult = function(event) {
+                let command = event.results[0][0].transcript.toLowerCase();
+                console.log('Command heard:', command);
                 processCommand(command);
             };
-            recognition.onerror = (event) => {
+
+            recognition.onerror = function(event) {
+                console.log('Speech error:', event.error);
                 isListening = false;
-                if (event.error === 'no-speech') {
-                    setTimeout(() => speakQuick("I'm listening. Please speak."), 500);
-                } else if (event.error === 'not-allowed') {
-                    alert("Please allow microphone access.");
+                if (event.error === 'not-allowed') {
+                    speak("Please allow microphone access and try again.");
+                } else {
+                    speak("I didn't hear you clearly. Let me listen again.");
+                    setTimeout(startListening, 1000);
                 }
             };
-            recognition.onend = () => {
+
+            recognition.onend = function() {
                 isListening = false;
-                setTimeout(() => {
-                    if (gameInitialized && !isListening) startListening();
-                }, 2000);
+                setTimeout(startListening, 2000);
             };
-            return true;
+
+            speak("Welcome to Echo Dungeon! Choose your class by saying: warrior, mage, or rogue.");
+            setTimeout(startListening, 3000);
         }
 
         function startListening() {
             if (recognition && !isListening) {
-                try { recognition.start(); } catch (e) {
-                    setTimeout(() => { try { recognition.start(); } catch (e) {} }, 1000);
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.log('Recognition start error:', e);
                 }
             }
         }
-        // Add this to the end of the <script> section in Part 1
 
-async function processCommand(command) {
-    if (!gameState.gameStarted) {
-        if (command.includes('warrior')) await startGame('warrior');
-        else if (command.includes('mage') || command.includes('wizard')) await startGame('mage');
-        else if (command.includes('rogue') || command.includes('thief')) await startGame('rogue');
-        else await speakGameText("Choose your class: warrior, mage, or rogue.");
-        return;
-    }
+        function processCommand(command) {
+            if (!gameStarted) {
+                if (command.includes('warrior')) {
+                    player.class = 'warrior';
+                    gameStarted = true;
+                    speak("You are now a warrior! Your adventure begins.");
+                    describeLocation();
+                } else if (command.includes('mage') || command.includes('wizard')) {
+                    player.class = 'mage';
+                    gameStarted = true;
+                    speak("You are now a mage! Your adventure begins.");
+                    describeLocation();
+                } else if (command.includes('rogue') || command.includes('thief')) {
+                    player.class = 'rogue';
+                    gameStarted = true;
+                    speak("You are now a rogue! Your adventure begins.");
+                    describeLocation();
+                } else {
+                    speak("Please say warrior, mage, or rogue to choose your class.");
+                }
+                return;
+            }
 
-    // Stop commands
-    if (command.includes('stop talking') || command.includes('be quiet')) {
-        speechManager.stop();
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await speakQuick("Speech stopped. Say continue when ready.");
-        return;
-    }
-
-    // Repeat commands
-    if (command.includes('repeat') || command.includes('again') || command === 'what') {
-        await describeLocation();
-        return;
-    }
-
-    // Movement
-    const directions = ['north', 'south', 'east', 'west', 'up', 'down', 'left', 'right', 'forward', 'back'];
-    for (const dir of directions) {
-        if (command.includes(dir)) {
-            const mappedDir = mapDirection(dir);
-            await movePlayer(mappedDir);
-            return;
+            // Movement
+            if (command.includes('north') || command.includes('go north')) {
+                movePlayer('north');
+            } else if (command.includes('south') || command.includes('go south')) {
+                movePlayer('south');
+            } else if (command.includes('east') || command.includes('go east')) {
+                movePlayer('east');
+            } else if (command.includes('west') || command.includes('go west')) {
+                movePlayer('west');
+            }
+            // Combat
+            else if (command.includes('attack') || command.includes('fight')) {
+                fight();
+            }
+            // Search
+            else if (command.includes('search') || command.includes('look')) {
+                search();
+            }
+            // Inventory
+            else if (command.includes('inventory') || command.includes('items')) {
+                showInventory();
+            }
+            // Use items
+            else if (command.includes('use potion') || command.includes('drink potion')) {
+                usePotion();
+            }
+            // Status
+            else if (command.includes('status') || command.includes('health')) {
+                speak(`Your health is ${player.health}. You are a ${player.class}.`);
+            }
+            // Location
+            else if (command.includes('where') || command.includes('location')) {
+                describeLocation();
+            }
+            // Help
+            else if (command.includes('help')) {
+                speak("Say: north, south, east, west to move. Say attack to fight. Say search to look for items. Say inventory to check items. Say status for health.");
+            }
+            else {
+                speak("I don't understand. Say help for commands.");
+            }
         }
-    }
 
-    // Combat
-    if (command.includes('attack') || command.includes('fight') || command.includes('battle')) {
-        await handleCombat();
-        return;
-    }
-
-    // Search
-    if (command.includes('search') || command.includes('look') || command.includes('explore')) {
-        await searchRoom();
-        return;
-    }
-
-    // Inventory
-    if (command.includes('inventory') || command.includes('items') || command.includes('what do i have')) {
-        await showInventory();
-        return;
-    }
-
-    // Use items
-    if (command.includes('use') || command.includes('drink') || command.includes('consume')) {
-        await useItem(command);
-        return;
-    }
-
-    // Status
-    if (command.includes('status') || command.includes('health') || command.includes('stats')) {
-        await showStatus();
-        return;
-    }
-
-    // Location
-    if (command.includes('where am i') || command.includes('location') || command.includes('exits')) {
-        await describeLocation();
-        return;
-    }
-
-    // Help
-    if (command.includes('help') || command.includes('commands')) {
-        await showHelp();
-        return;
-    }
-
-    // Restart
-    if (command.includes('restart') || command.includes('new game')) {
-        await restartGame();
-        return;
-    }
-
-    await speakQuick(`I didn't understand "${command}". Say help for commands.`);
-}
-
-function mapDirection(direction) {
-    const dirMap = {
-        'up': 'north', 'forward': 'north',
-        'down': 'south', 'back': 'south',
-        'right': 'east', 'left': 'west'
-    };
-    return dirMap[direction] || direction;
-}
-
-async function startGame(playerClass) {
-    gameState.player.class = playerClass;
-    gameState.gameStarted = true;
-    gameState.currentRoom = 'entrance';
-    
-    const descriptions = {
-        warrior: "You are now a mighty warrior with superior combat skills.",
-        mage: "You are now a powerful mage wielding magical forces.",
-        rogue: "You are now a cunning rogue with stealth abilities."
-    };
-    
-    await speakImportant(`${descriptions[playerClass]} Your adventure begins!`);
-    await describeLocation();
-}
-
-async function movePlayer(direction) {
-    const currentRoom = gameState.rooms[gameState.currentRoom];
-    
-    if (!currentRoom.exits[direction]) {
-        const exits = Object.keys(currentRoom.exits).join(', ');
-        await speakQuick(`Cannot go ${direction}. Available: ${exits}.`);
-        return;
-    }
-    
-    gameState.currentRoom = currentRoom.exits[direction];
-    gameState.player.location = gameState.currentRoom;
-    await speakGameText(`You move ${direction}.`);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    await describeLocation();
-}
-
-async function describeLocation() {
-    const room = gameState.rooms[gameState.currentRoom];
-    let description = room.description;
-    
-    if (room.items.length > 0) {
-        description += ` Items here: ${room.items.join(', ')}.`;
-    }
-    
-    if (room.monsters.length > 0) {
-        description += ` Warning! A ${room.monsters[0]} blocks your path!`;
-    }
-    
-    const exits = Object.keys(room.exits);
-    description += ` Exits: ${exits.join(', ')}.`;
-    
-    await speakImportant(description);
-}
-
-async function handleCombat() {
-    const room = gameState.rooms[gameState.currentRoom];
-    
-    if (room.monsters.length === 0) {
-        await speakQuick("No enemies here to fight.");
-        return;
-    }
-    
-    const monster = room.monsters[0];
-    await speakGameText(`Fighting the ${monster}!`);
-    
-    const playerRoll = Math.floor(Math.random() * 20) + 1;
-    const monsterRoll = Math.floor(Math.random() * 20) + 1;
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    if (playerRoll >= monsterRoll) {
-        await speakQuick(`Victory! You rolled ${playerRoll}, ${monster} rolled ${monsterRoll}.`);
-        room.monsters.splice(0, 1);
-        gameState.player.level++;
-        await speakGameText("Monster defeated! Path clear.");
-    } else {
-        await speakQuick(`Defeat! You ${playerRoll}, ${monster} ${monsterRoll}.`);
-        gameState.player.health -= 25;
-        
-        if (gameState.player.health <= 0) {
-            await handleDeath();
-        } else {
-            await speakGameText(`Damage taken! Health: ${gameState.player.health}. Monster still blocks way.`);
+        function movePlayer(direction) {
+            let room = rooms[currentRoom];
+            if (room.exits[direction]) {
+                currentRoom = room.exits[direction];
+                player.location = currentRoom;
+                speak(`You go ${direction}.`);
+                setTimeout(describeLocation, 1000);
+            } else {
+                speak(`You cannot go ${direction} from here.`);
+            }
         }
-    }
-}
 
-async function handleDeath() {
-    await speakImportant("You have fallen! But heroes don't stay dead.");
-    gameState.player.health = gameState.player.maxHealth;
-    gameState.currentRoom = 'entrance';
-    await speakGameText("You awaken at entrance, fully healed.");
-    await describeLocation();
-}
-
-async function searchRoom() {
-    const room = gameState.rooms[gameState.currentRoom];
-    
-    if (room.items.length > 0) {
-        const item = room.items[0];
-        gameState.player.inventory.push(item);
-        room.items.splice(0, 1);
-        await speakGameText(`Found ${item}! Added to inventory.`);
-    } else {
-        await speakQuick("Search found nothing.");
-    }
-}
-
-async function showInventory() {
-    if (gameState.player.inventory.length === 0) {
-        await speakQuick("Inventory empty.");
-    } else {
-        await speakGameText(`You have: ${gameState.player.inventory.join(', ')}.`);
-    }
-}
-
-async function useItem(command) {
-    if (gameState.player.inventory.length === 0) {
-        await speakQuick("No items to use.");
-        return;
-    }
-    
-    let targetItem = null;
-    for (const item of gameState.player.inventory) {
-        if (command.includes(item.toLowerCase())) {
-            targetItem = item;
-            break;
+        function describeLocation() {
+            let room = rooms[currentRoom];
+            let description = room.description;
+            
+            if (room.monsters.length > 0) {
+                description += ` A ${room.monsters[0]} is here!`;
+            }
+            
+            if (room.items.length > 0) {
+                description += ` You see: ${room.items.join(', ')}.`;
+            }
+            
+            speak(description);
         }
-    }
-    
-    if (!targetItem) {
-        if (command.includes('potion') || command.includes('health')) {
-            targetItem = gameState.player.inventory.find(item => item.includes('potion'));
+
+        function fight() {
+            let room = rooms[currentRoom];
+            if (room.monsters.length === 0) {
+                speak("Nothing to fight here.");
+                return;
+            }
+            
+            let monster = room.monsters[0];
+            let playerRoll = Math.floor(Math.random() * 20) + 1;
+            let monsterRoll = Math.floor(Math.random() * 20) + 1;
+            
+            if (playerRoll >= monsterRoll) {
+                speak(`You defeat the ${monster}!`);
+                room.monsters = [];
+            } else {
+                speak(`The ${monster} hits you! You lose health.`);
+                player.health -= 20;
+                if (player.health <= 0) {
+                    speak("You died! Game over. Say warrior, mage, or rogue to restart.");
+                    gameStarted = false;
+                    player.health = 100;
+                    currentRoom = 'entrance';
+                }
+            }
         }
-    }
-    
-    if (!targetItem) {
-        await speakQuick("Which item? Say inventory first.");
-        return;
-    }
-    
-    const index = gameState.player.inventory.indexOf(targetItem);
-    gameState.player.inventory.splice(index, 1);
-    
-    if (targetItem.includes('health') || targetItem.includes('potion')) {
-        const oldHealth = gameState.player.health;
-        gameState.player.health = Math.min(gameState.player.maxHealth, gameState.player.health + 40);
-        const heal = gameState.player.health - oldHealth;
-        await speakGameText(`Used ${targetItem}. Restored ${heal} health. Health: ${gameState.player.health}.`);
-    } else {
-        await speakGameText(`Used ${targetItem}.`);
-    }
-}
 
-async function showStatus() {
-    await speakGameText(`Health: ${gameState.player.health}. Level ${gameState.player.level} ${gameState.player.class}. Location: ${gameState.player.location}.`);
-}
+        function search() {
+            let room = rooms[currentRoom];
+            if (room.items.length > 0) {
+                let item = room.items.shift();
+                player.inventory.push(item);
+                speak(`You found a ${item}!`);
+            } else {
+                speak("You found nothing.");
+            }
+        }
 
-async function showHelp() {
-    await speakImportant("Commands: north south east west for movement. attack or fight for combat. search or explore for items. inventory for items. use health potion. status for health. where am i for location. repeat to hear again. help for this message.");
-}
+        function showInventory() {
+            if (player.inventory.length === 0) {
+                speak("Your inventory is empty.");
+            } else {
+                speak(`You have: ${player.inventory.join(', ')}.`);
+            }
+        }
 
-async function restartGame() {
-    speechManager.stop();
-    gameState.gameStarted = false;
-    gameState.player = { health: 100, maxHealth: 100, class: null, level: 1, inventory: [], location: 'entrance' };
-    gameState.currentRoom = null;
-    await speakImportant("Game restarted! Choose: warrior, mage, or rogue.");
-}
-async function initializeGame() {
-    if (initializeVoiceRecognition()) {
-        gameInitialized = true;
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        await speakImportant("Welcome to Echo Dungeon! Voice-controlled adventure. Choose your class: warrior, mage, or rogue.");
-        startListening();
-    }
-}
-
-// Event listeners
-document.addEventListener('click', () => { if (!gameInitialized) initializeGame(); });
-document.addEventListener('keydown', (e) => { if (!gameInitialized) { e.preventDefault(); initializeGame(); } });
-window.addEventListener('load', () => { setTimeout(() => { if (!gameInitialized) initializeGame(); }, 2000); });
+        function usePotion() {
+            let potionIndex = player.inventory.indexOf('health potion');
+            if (potionIndex !== -1) {
+                player.inventory.splice(potionIndex, 1);
+                player.health = Math.min(100, player.health + 50);
+                speak(`You drink the potion. Health restored to ${player.health}.`);
+            } else {
+                speak("You don't have a health potion.");
+            }
+        }
     </script>
 </body>
 </html>
