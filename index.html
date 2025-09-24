@@ -97,35 +97,41 @@
         
         let currentRoom = 'entrance';
 
-        function speak(text) {
-            return new Promise((resolve) => {
-                console.log('Speaking:', text);
-                document.getElementById('gameText').innerHTML += '<p>' + text + '</p>';
+        /**
+         * Speaks a given text and handles restarting the listener.
+         * @param {string} text The text to be spoken.
+         * @param {function} [callback] A function to call after the speech is finished.
+         */
+        function speak(text, callback) {
+            console.log('Speaking:', text);
+            document.getElementById('gameText').innerHTML += '<p>' + text + '</p>';
+            
+            if (synth) {
+                synth.cancel();
+                let utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
                 
-                if (synth) {
-                    synth.cancel();
-                    let utterance = new SpeechSynthesisUtterance(text);
-                    utterance.rate = 0.9;
-                    utterance.pitch = 1.0;
-                    utterance.volume = 1.0;
-                    
-                    utterance.onend = () => {
-                        // Add a small pause after speaking before resolving
-                        setTimeout(() => {
-                           resolve();
-                           // Restart listening after the game is done speaking
-                           if (gameStarted) {
-                                startListening();
-                           }
-                        }, 300);
-                    };
-                    utterance.onerror = () => resolve();
-                    
-                    synth.speak(utterance);
-                } else {
-                    resolve();
+                utterance.onend = () => {
+                    // Call the callback function after the speech is done.
+                    // This is where we'll handle restarting the listener.
+                    if (callback) {
+                        setTimeout(callback, 300); // Small delay to avoid issues
+                    }
+                };
+                utterance.onerror = () => {
+                    if (callback) {
+                        callback();
+                    }
+                };
+                
+                synth.speak(utterance);
+            } else {
+                if (callback) {
+                    callback();
                 }
-            });
+            }
         }
 
         function startGame() {
@@ -149,33 +155,33 @@
             };
 
             recognition.onresult = function(event) {
+                isListening = false;
                 let command = event.results[0][0].transcript.toLowerCase();
                 console.log('Command heard:', command);
                 processCommand(command);
             };
 
             recognition.onerror = function(event) {
-                console.log('Speech error:', event.error);
                 isListening = false;
+                console.log('Speech error:', event.error);
                 if (event.error === 'not-allowed') {
                     speak("Please allow microphone access and try again.");
                 } else if (event.error === 'no-speech') {
-                    speak("I didn't hear anything. Let me listen again.");
-                    setTimeout(startListening, 1000);
+                    speak("I didn't hear anything. Let me listen again.", startListening);
                 } else {
-                    speak("I didn't hear you clearly. Let me listen again.");
-                    setTimeout(startListening, 1000);
+                    speak("I didn't hear you clearly. Let me listen again.", startListening);
                 }
             };
 
             recognition.onend = function() {
                 isListening = false;
-                // Don't automatically restart here; it's handled in the speak function now.
+                // The restart logic is now handled by the speak() function via callbacks.
             };
 
-            speak("Welcome to Echo Dungeon! Choose your class by saying: warrior, mage, or rogue.");
-            // Initial listening start is delayed to allow the user to hear the welcome message.
-            setTimeout(startListening, 3000);
+            speak("Welcome to Echo Dungeon! Choose your class by saying: warrior, mage, or rogue.", () => {
+                // This callback ensures we only start listening after the welcome message is finished.
+                startListening();
+            });
         }
 
         function startListening() {
@@ -239,7 +245,7 @@
             }
             // Status
             else if (command.includes('status') || command.includes('health')) {
-                await speak(`Your health is ${player.health}. You are a ${player.class}.`);
+                await speak(`Your health is ${player.health}. You are a ${player.class}.`, startListening);
             }
             // Location
             else if (command.includes('where') || command.includes('location')) {
@@ -247,10 +253,10 @@
             }
             // Help
             else if (command.includes('help')) {
-                await speak("Say: north, south, east, west to move. Say attack to fight. Say search to look for items. Say inventory to check items. Say status for health.");
+                await speak("Say: north, south, east, west to move. Say attack to fight. Say search to look for items. Say inventory to check items. Say status for health.", startListening);
             }
             else {
-                await speak("I don't understand. Say help for commands.");
+                await speak("I don't understand. Say help for commands.", startListening);
             }
         }
 
@@ -262,7 +268,7 @@
                 await speak(`You go ${direction}.`);
                 await describeLocation();
             } else {
-                await speak(`You cannot go ${direction} from here.`);
+                await speak(`You cannot go ${direction} from here.`, startListening);
             }
         }
 
@@ -278,13 +284,13 @@
                 description += ` You see: ${room.items.join(', ')}.`;
             }
             
-            await speak(description);
+            await speak(description, startListening);
         }
 
         async function fight() {
             let room = rooms[currentRoom];
             if (room.monsters.length === 0) {
-                await speak("Nothing to fight here.");
+                await speak("Nothing to fight here.", startListening);
                 return;
             }
             
@@ -293,13 +299,13 @@
             let monsterRoll = Math.floor(Math.random() * 20) + 1;
             
             if (playerRoll >= monsterRoll) {
-                await speak(`You defeat the ${monster}!`);
+                await speak(`You defeat the ${monster}!`, startListening);
                 room.monsters = [];
             } else {
-                await speak(`The ${monster} hits you! You lose health.`);
+                await speak(`The ${monster} hits you! You lose health.`, startListening);
                 player.health -= 20;
                 if (player.health <= 0) {
-                    await speak("You died! Game over. Say warrior, mage, or rogue to restart.");
+                    await speak("You died! Game over. Say warrior, mage, or rogue to restart.", startListening);
                     gameStarted = false;
                     player.health = 100;
                     currentRoom = 'entrance';
@@ -312,17 +318,17 @@
             if (room.items.length > 0) {
                 let item = room.items.shift();
                 player.inventory.push(item);
-                await speak(`You found a ${item}!`);
+                await speak(`You found a ${item}!`, startListening);
             } else {
-                await speak("You found nothing.");
+                await speak("You found nothing.", startListening);
             }
         }
 
         async function showInventory() {
             if (player.inventory.length === 0) {
-                await speak("Your inventory is empty.");
+                await speak("Your inventory is empty.", startListening);
             } else {
-                await speak(`You have: ${player.inventory.join(', ')}.`);
+                await speak(`You have: ${player.inventory.join(', ')}.`, startListening);
             }
         }
 
@@ -331,12 +337,13 @@
             if (potionIndex !== -1) {
                 player.inventory.splice(potionIndex, 1);
                 player.health = Math.min(100, player.health + 50);
-                await speak(`You drink the potion. Health restored to ${player.health}.`);
+                await speak(`You drink the potion. Health restored to ${player.health}.`, startListening);
             } else {
-                await speak("You don't have a health potion.");
+                await speak("You don't have a health potion.", startListening);
             }
         }
     </script>
 </body>
 </html>
+
 
