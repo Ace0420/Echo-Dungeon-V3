@@ -105,13 +105,19 @@
                 if (synth) {
                     synth.cancel();
                     let utterance = new SpeechSynthesisUtterance(text);
-                    utterance.rate = 0.9; // 10% slower than normal
+                    utterance.rate = 0.9;
                     utterance.pitch = 1.0;
                     utterance.volume = 1.0;
                     
                     utterance.onend = () => {
                         // Add a small pause after speaking before resolving
-                        setTimeout(() => resolve(), 300);
+                        setTimeout(() => {
+                           resolve();
+                           // Restart listening after the game is done speaking
+                           if (gameStarted) {
+                                startListening();
+                           }
+                        }, 300);
                     };
                     utterance.onerror = () => resolve();
                     
@@ -153,6 +159,9 @@
                 isListening = false;
                 if (event.error === 'not-allowed') {
                     speak("Please allow microphone access and try again.");
+                } else if (event.error === 'no-speech') {
+                    speak("I didn't hear anything. Let me listen again.");
+                    setTimeout(startListening, 1000);
                 } else {
                     speak("I didn't hear you clearly. Let me listen again.");
                     setTimeout(startListening, 1000);
@@ -161,13 +170,11 @@
 
             recognition.onend = function() {
                 isListening = false;
-                // Don't automatically restart if speech is still happening
-                if (!synth.speaking) {
-                    setTimeout(startListening, 2000);
-                }
+                // Don't automatically restart here; it's handled in the speak function now.
             };
 
             speak("Welcome to Echo Dungeon! Choose your class by saying: warrior, mage, or rogue.");
+            // Initial listening start is delayed to allow the user to hear the welcome message.
             setTimeout(startListening, 3000);
         }
 
@@ -332,3 +339,4 @@
     </script>
 </body>
 </html>
+
