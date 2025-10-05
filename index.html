@@ -102,7 +102,7 @@
                 mana: 30,
                 maxMana: 30,
                 gold: 50,
-                items: ['Iron Sword', 'Health Potion', 'Leather Armor'],
+                items: ['Iron Sword', 'Health Potion', 'Health Potion', 'Leather Armor'],
                 special: { name: 'Power Strike', damage: 25, cost: 15 }
             },
             mage: {
@@ -112,7 +112,7 @@
                 mana: 100,
                 maxMana: 100,
                 gold: 75,
-                items: ['Magic Staff', 'Mana Potion', 'Cloth Robes'],
+                items: ['Magic Staff', 'Mana Potion', 'Health Potion', 'Cloth Robes'],
                 special: { name: 'Fireball', damage: 30, cost: 20 }
             },
             rogue: {
@@ -122,7 +122,7 @@
                 mana: 60,
                 maxMana: 60,
                 gold: 100,
-                items: ['Steel Dagger', 'Lockpicks', 'Studded Leather'],
+                items: ['Steel Dagger', 'Lockpicks', 'Health Potion', 'Studded Leather'],
                 special: { name: 'Backstab', damage: 35, cost: 25 }
             }
         };
@@ -229,7 +229,7 @@
         function initializeGame() {
             game.initialized = true;
             micButton.classList.remove('start-button');
-            speak("Welcome to Echo Dungeon. Choose your class: warrior, mage, or rogue.");
+            speak("Welcome to Echo Dungeon. Choose your class: warrior, wizard, or rogue.");
         }
 
         function handleClick() {
@@ -308,6 +308,7 @@
                     const distanceFromCenter = Math.abs(x - centerX) + Math.abs(y - centerY);
                     
                     if (x === centerX && y === centerY) {
+                        // Entrance - always center
                         game.dungeon.grid[key] = {
                             type: 'entrance',
                             ...roomTypes.entrance,
@@ -315,8 +316,8 @@
                             searched: false,
                             hasChest: false
                         };
-                    } else if ((x === 0 && y === 0) || (x === 2 && y === 2)) {
-                        // Only 2 boss rooms in opposite corners
+                    } else if (x === 0 && y === 0) {
+                        // Boss room - top left corner ONLY
                         game.dungeon.grid[key] = {
                             type: 'boss',
                             ...roomTypes.boss,
@@ -326,54 +327,45 @@
                             enemy: { ...enemies.dragon }
                         };
                     } else if (distanceFromCenter === 1) {
-                        // Rooms adjacent to entrance are safe (treasure or empty)
-                        const isTreasure = Math.random() < 0.6;
+                        // Ring around entrance - ALWAYS safe treasure rooms
                         game.dungeon.grid[key] = {
-                            type: isTreasure ? 'treasure' : 'empty',
-                            ...roomTypes[isTreasure ? 'treasure' : 'empty'],
+                            type: 'treasure',
+                            ...roomTypes.treasure,
                             visited: false,
                             searched: false,
-                            hasChest: isTreasure
+                            hasChest: true
                         };
-                    } else {
-                        // Outer rooms have enemies or treasure
-                        const rand = Math.random();
-                        let type, room;
-                        
-                        if (rand < 0.5) {
-                            type = 'enemy';
-                            room = {
-                                type: type,
-                                ...roomTypes[type],
+                    } else if (distanceFromCenter === 2) {
+                        // Outer ring - enemies and treasure mix
+                        const isEnemy = Math.random() < 0.6;
+                        if (isEnemy) {
+                            const enemyType = Math.random() < 0.7 ? 'goblin' : 'skeleton';
+                            game.dungeon.grid[key] = {
+                                type: 'enemy',
+                                ...roomTypes.enemy,
                                 visited: false,
                                 searched: false,
-                                hasChest: Math.random() < 0.3
+                                hasChest: Math.random() < 0.3,
+                                enemy: { ...enemies[enemyType] }
                             };
-                            // Weaker enemies further from boss rooms
-                            const enemyTypes = ['goblin', 'goblin', 'skeleton'];
-                            const enemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-                            room.enemy = { ...enemies[enemyType] };
-                        } else if (rand < 0.8) {
-                            type = 'treasure';
-                            room = {
-                                type: type,
-                                ...roomTypes[type],
+                        } else {
+                            game.dungeon.grid[key] = {
+                                type: 'treasure',
+                                ...roomTypes.treasure,
                                 visited: false,
                                 searched: false,
                                 hasChest: true
                             };
-                        } else {
-                            type = 'empty';
-                            room = {
-                                type: type,
-                                ...roomTypes[type],
-                                visited: false,
-                                searched: false,
-                                hasChest: Math.random() < 0.2
-                            };
                         }
-                        
-                        game.dungeon.grid[key] = room;
+                    } else {
+                        // Any remaining rooms - mostly empty or treasure
+                        game.dungeon.grid[key] = {
+                            type: 'empty',
+                            ...roomTypes.empty,
+                            visited: false,
+                            searched: false,
+                            hasChest: Math.random() < 0.2
+                        };
                     }
                 }
             }
@@ -510,8 +502,8 @@
         }
 
         function playerAttack() {
-            const baseDamage = 10;
-            const damage = baseDamage + Math.floor(Math.random() * 10);
+            const baseDamage = 15;
+            const damage = baseDamage + Math.floor(Math.random() * 15);
             game.combat.enemy.health -= damage;
             
             speakSequence([
@@ -600,28 +592,31 @@
 
         function attemptFlee() {
             const chance = game.combat.enemy.fleeChance;
+            const roll = Math.random();
             
-            if (Math.random() < chance) {
-                speak('You escape!', () => {
-                    game.combat = null;
-                    game.phase = 'exploration';
-                    setTimeout(() => {
-                        const { x, y } = game.player.position;
-                        if (y > 0) {
-                            game.player.position.y--;
-                        } else if (x > 0) {
-                            game.player.position.x--;
-                        }
-                        const key = `${game.player.position.x},${game.player.position.y}`;
-                        game.currentRoom = game.dungeon.grid[key];
-                        describeRoom();
-                    }, 1000);
-                });
-            } else {
-                speak('You fail to escape!', () => {
-                    setTimeout(() => enemyTurn(), 1000);
-                });
-            }
+            speak(`Attempting to flee...`, () => {
+                setTimeout(() => {
+                    if (roll < chance) {
+                        speak('You successfully escape!', () => {
+                            game.combat = null;
+                            game.phase = 'exploration';
+                            setTimeout(() => {
+                                // Move back to entrance if possible
+                                const centerX = Math.floor(game.dungeon.size / 2);
+                                const centerY = Math.floor(game.dungeon.size / 2);
+                                game.player.position = { x: centerX, y: centerY };
+                                const key = `${centerX},${centerY}`;
+                                game.currentRoom = game.dungeon.grid[key];
+                                speak('You flee back to the entrance.');
+                            }, 1000);
+                        });
+                    } else {
+                        speak('You fail to escape!', () => {
+                            setTimeout(() => enemyTurn(), 1000);
+                        });
+                    }
+                }, 1000);
+            });
         }
 
         function enemyTurn() {
