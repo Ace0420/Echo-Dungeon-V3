@@ -137,10 +137,10 @@
         };
 
         const enemies = {
-            goblin: { name: 'Goblin', health: 30, damage: 8, gold: 15, fleeChance: 0.7 },
-            skeleton: { name: 'Skeleton', health: 40, damage: 10, gold: 20, fleeChance: 0.6 },
+            goblin: { name: 'Goblin', health: 30, damage: 8, gold: 15, fleeChance: 0.8 },
+            skeleton: { name: 'Skeleton', health: 40, damage: 10, gold: 20, fleeChance: 0.7 },
             orc: { name: 'Orc', health: 60, damage: 15, gold: 35, fleeChance: 0.5 },
-            dragon: { name: 'Dragon', health: 100, damage: 25, gold: 100, fleeChance: 0.2 }
+            dragon: { name: 'Dragon', health: 100, damage: 25, gold: 100, fleeChance: 0.3 }
         };
 
         function speak(text, callback) {
@@ -302,11 +302,10 @@
             const centerX = Math.floor(size / 2);
             const centerY = Math.floor(size / 2);
             
-            const types = ['empty', 'treasure', 'enemy', 'trap'];
-            
             for (let x = 0; x < size; x++) {
                 for (let y = 0; y < size; y++) {
                     const key = `${x},${y}`;
+                    const distanceFromCenter = Math.abs(x - centerX) + Math.abs(y - centerY);
                     
                     if (x === centerX && y === centerY) {
                         game.dungeon.grid[key] = {
@@ -316,29 +315,62 @@
                             searched: false,
                             hasChest: false
                         };
-                    } else if ((x === 0 || x === size - 1) && (y === 0 || y === size - 1)) {
+                    } else if ((x === 0 && y === 0) || (x === 2 && y === 2)) {
+                        // Only 2 boss rooms in opposite corners
                         game.dungeon.grid[key] = {
                             type: 'boss',
                             ...roomTypes.boss,
                             visited: false,
                             searched: false,
-                            hasChest: false,
+                            hasChest: true,
                             enemy: { ...enemies.dragon }
                         };
-                    } else {
-                        const type = types[Math.floor(Math.random() * types.length)];
-                        const room = {
-                            type: type,
-                            ...roomTypes[type],
+                    } else if (distanceFromCenter === 1) {
+                        // Rooms adjacent to entrance are safe (treasure or empty)
+                        const isTreasure = Math.random() < 0.6;
+                        game.dungeon.grid[key] = {
+                            type: isTreasure ? 'treasure' : 'empty',
+                            ...roomTypes[isTreasure ? 'treasure' : 'empty'],
                             visited: false,
                             searched: false,
-                            hasChest: type === 'treasure' || Math.random() < 0.2
+                            hasChest: isTreasure
                         };
+                    } else {
+                        // Outer rooms have enemies or treasure
+                        const rand = Math.random();
+                        let type, room;
                         
-                        if (type === 'enemy') {
-                            const enemyTypes = ['goblin', 'skeleton', 'orc'];
+                        if (rand < 0.5) {
+                            type = 'enemy';
+                            room = {
+                                type: type,
+                                ...roomTypes[type],
+                                visited: false,
+                                searched: false,
+                                hasChest: Math.random() < 0.3
+                            };
+                            // Weaker enemies further from boss rooms
+                            const enemyTypes = ['goblin', 'goblin', 'skeleton'];
                             const enemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
                             room.enemy = { ...enemies[enemyType] };
+                        } else if (rand < 0.8) {
+                            type = 'treasure';
+                            room = {
+                                type: type,
+                                ...roomTypes[type],
+                                visited: false,
+                                searched: false,
+                                hasChest: true
+                            };
+                        } else {
+                            type = 'empty';
+                            room = {
+                                type: type,
+                                ...roomTypes[type],
+                                visited: false,
+                                searched: false,
+                                hasChest: Math.random() < 0.2
+                            };
                         }
                         
                         game.dungeon.grid[key] = room;
