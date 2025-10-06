@@ -81,7 +81,7 @@
             },
             dungeon: {
                 grid: {},
-                size: 5, // FIXED: Grid size changed to 5x5
+                size: 5, // FIXED: Grid size is now 5x5
                 secretRoom: null,
                 hasSecretRoom: false
             },
@@ -103,10 +103,10 @@
                 maxMana: 30,
                 gold: 50,
                 items: ['Iron Sword', 'Health Potion', 'Health Potion', 'Leather Armor'],
-                special: { name: 'Power Strike', damage: 40, cost: 15 } // FIXED: Power Strike damage increased to 40
+                special: { name: 'Power Strike', damage: 40, cost: 15 }
             },
-            wizard: { // FIXED: Renamed 'mage' to 'wizard'
-                name: 'Wizard', // FIXED: Renamed 'Mage' to 'Wizard'
+            mage: { 
+                name: 'Mage',
                 health: 80,
                 maxHealth: 80,
                 mana: 100,
@@ -229,8 +229,7 @@
         function initializeGame() {
             game.initialized = true;
             micButton.classList.remove('start-button');
-            // FIXED: Updated welcome message to include "wizard"
-            speak("Welcome to Echo Dungeon. Choose your class: warrior, wizard, or rogue."); 
+            speak("Welcome to Echo Dungeon. Choose your class: warrior, mage, or rogue."); 
         }
 
         function handleClick() {
@@ -244,10 +243,9 @@
         function processCommand(command) {
             if (game.needsClass) {
                 if (command.includes('warrior')) selectClass('warrior');
-                // FIXED: Changed 'mage' to 'wizard' to fix class selection
-                else if (command.includes('wizard') || command.includes('mage')) selectClass('wizard'); 
+                else if (command.includes('mage') || command.includes('wizard')) selectClass('mage'); 
                 else if (command.includes('rogue')) selectClass('rogue');
-                else speak('Please say warrior, wizard, or rogue.');
+                else speak('Please say warrior, mage, or rogue.');
                 return;
             }
 
@@ -264,6 +262,8 @@
             else if (command.includes('south')) move('south');
             else if (command.includes('east')) move('east');
             else if (command.includes('west')) move('west');
+            // NEW: Added meditate command
+            else if (command.includes('meditate') || command.includes('rest')) meditate(); 
             else if (command.includes('look') || command.includes('around')) describeRoom();
             else if (command.includes('search')) searchRoom();
             else if (command.includes('open chest') || command.includes('chest')) openChest();
@@ -312,7 +312,7 @@
                     const distanceFromCenter = distanceX + distanceY;
                     
                     if (x === centerX && y === centerY) {
-                        // Entrance - always center
+                        // Entrance - always center (2,2) on a 5x5 grid
                         game.dungeon.grid[key] = {
                             type: 'entrance',
                             ...roomTypes.entrance,
@@ -320,8 +320,8 @@
                             searched: false,
                             hasChest: false
                         };
-                    } else if (x === size - 1 && y === size - 1) { // FIXED: Boss room at bottom-right of 5x5 grid (4,4)
-                        // Boss room - end of dungeon
+                    } else if (x === size - 1 && y === size - 1) { 
+                        // FIXED: Boss room at bottom-right of 5x5 grid (4,4)
                         game.dungeon.grid[key] = {
                             type: 'boss',
                             ...roomTypes.boss,
@@ -331,7 +331,7 @@
                             enemy: { ...enemies.dragon }
                         };
                     } else if (distanceFromCenter < 2) {
-                        // Close to center - safe rooms
+                        // Close to center (distance 1) - safe rooms and treasure
                         const type = Math.random() < 0.6 ? 'empty' : 'treasure';
                         game.dungeon.grid[key] = {
                             type: type,
@@ -341,10 +341,13 @@
                             hasChest: Math.random() < 0.4
                         };
                     } else if (distanceFromCenter >= 2) {
-                        // Far from center - enemies and treasure mix
-                        const isEnemy = Math.random() < 0.6;
+                        // Far from center (distance 2, 3, 4) - increasing difficulty
+                        const isEnemy = Math.random() < (distanceFromCenter * 0.2); // Enemy chance increases with distance
                         if (isEnemy) {
-                            const enemyType = Math.random() < 0.6 ? 'goblin' : Math.random() < 0.5 ? 'skeleton' : 'orc';
+                            let enemyType = 'goblin';
+                            if (distanceFromCenter >= 3) enemyType = 'skeleton';
+                            if (distanceFromCenter >= 4) enemyType = 'orc';
+
                             game.dungeon.grid[key] = {
                                 type: 'enemy',
                                 ...roomTypes.enemy,
@@ -487,6 +490,22 @@
             }
         }
 
+        // NEW: Meditate function to restore mana
+        function meditate() {
+            const manaRestored = 10;
+            const previousMana = game.player.mana;
+            
+            if (game.player.mana === game.player.maxMana) {
+                speak('You are already at full mana.');
+                return;
+            }
+
+            game.player.mana = Math.min(game.player.maxMana, game.player.mana + manaRestored);
+            const actualRestored = game.player.mana - previousMana;
+
+            speak(`You meditate for a moment and restore ${actualRestored} mana. Current mana: ${game.player.mana}.`);
+        }
+
         function startCombat(enemy) {
             game.combat = { enemy: { ...enemy }, playerDefending: false };
             game.phase = 'combat';
@@ -541,11 +560,12 @@
             }
             
             game.player.mana -= special.cost;
-            game.combat.enemy.health -= special.damage;
+            const damage = special.damage; 
+            game.combat.enemy.health -= damage;
             
             speakSequence([
                 `You use ${special.name}!`,
-                `${special.damage} damage!`,
+                `${damage} damage!`,
                 `${game.combat.enemy.name} has ${Math.max(0, game.combat.enemy.health)} health left.`
             ], () => {
                 if (game.combat.enemy.health <= 0) {
@@ -724,7 +744,8 @@
             if (game.phase === 'combat') {
                 speak('Combat commands: attack, defend, special, use potion, or flee.');
             } else {
-                speak('Exploration commands: north, south, east, west, look around, search, open chest, status, inventory, or help.');
+                // UPDATED: Added meditate to help list
+                speak('Exploration commands: north, south, east, west, look around, search, open chest, meditate, status, inventory, or help.');
             }
         }
 
@@ -741,7 +762,8 @@
             } else {
                 speakSequence([
                     'Movement: north, south, east, west.',
-                    'Actions: look around, search, open chest.',
+                    // UPDATED: Added meditate to command list
+                    'Actions: look around, search, open chest, meditate.',
                     'Info: status, inventory, hint.',
                     'Say commands for this list.'
                 ]);
@@ -763,11 +785,13 @@
                     speak('There is a chest here. Say open chest.');
                 } else if (!room.searched) {
                     speak('You have not searched this room yet. Try searching.');
+                } else if (game.player.mana < game.player.maxMana * 0.5) {
+                    speak('Your mana is low. Consider saying meditate to recover.');
                 } else if (room.type === 'boss') {
-                    // FIXED: Boss room hint updated for 5x5 location
-                    speak('The path to the dragon is at the edge of the dungeon. Keep exploring!');
+                    speak('This is a boss room. Be prepared for a tough fight.');
                 } else {
-                    speak('Explore in different directions. The deepest part of the dungeon is at the bottom right corner.');
+                    // UPDATED: Hint for 5x5 grid
+                    speak('Explore in different directions. The deepest part of the dungeon is at the bottom right corner (east and south).');
                 }
             }
         }
@@ -783,6 +807,7 @@
     </script>
 </body>
 </html>
+
 
 
 
