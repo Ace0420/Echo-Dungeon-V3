@@ -81,7 +81,7 @@
             },
             dungeon: {
                 grid: {},
-                size: 5, // FIXED: Grid size is now 5x5
+                size: 6, // FIXED: Grid size is now 6x6
                 secretRoom: null,
                 hasSecretRoom: false
             },
@@ -103,7 +103,7 @@
                 maxMana: 30,
                 gold: 50,
                 items: ['Iron Sword', 'Health Potion', 'Health Potion', 'Leather Armor'],
-                special: { name: 'Power Strike', damage: 40, cost: 15 }
+                special: { name: 'Power Strike', damage: 40, cost: 15, type: 'damage' }
             },
             mage: { 
                 name: 'Mage',
@@ -113,7 +113,8 @@
                 maxMana: 100,
                 gold: 75,
                 items: ['Magic Staff', 'Mana Potion', 'Health Potion', 'Cloth Robes'],
-                special: { name: 'Fireball', damage: 30, cost: 20 }
+                // REVERTED: Mage special back to Fireball
+                special: { name: 'Fireball', damage: 30, cost: 20, type: 'damage' } 
             },
             rogue: {
                 name: 'Rogue',
@@ -123,7 +124,7 @@
                 maxMana: 60,
                 gold: 100,
                 items: ['Steel Dagger', 'Lockpicks', 'Health Potion', 'Studded Leather'],
-                special: { name: 'Backstab', damage: 35, cost: 25 }
+                special: { name: 'Backstab', damage: 35, cost: 25, type: 'damage' }
             }
         };
 
@@ -140,7 +141,7 @@
             goblin: { name: 'Goblin', health: 30, damage: 8, gold: 15, fleeChance: 0.8 },
             skeleton: { name: 'Skeleton', health: 40, damage: 10, gold: 20, fleeChance: 0.7 },
             orc: { name: 'Orc', health: 60, damage: 15, gold: 35, fleeChance: 0.5 },
-            dragon: { name: 'Dragon', health: 150, damage: 30, gold: 250, fleeChance: 0.1 } // Increased Dragon stats for 5x5 boss
+            dragon: { name: 'Dragon', health: 150, damage: 30, gold: 250, fleeChance: 0.1 } 
         };
 
         function speak(text, callback) {
@@ -250,10 +251,17 @@
             }
 
             if (game.combat) {
-                processCombatCommand(command);
+                // Potion commands are handled here for combat
+                if (command.includes('attack')) playerAttack();
+                else if (command.includes('defend')) playerDefend();
+                else if (command.includes('special')) playerSpecial();
+                else if (command.includes('potion') || command.includes('use') || command.includes('drink')) usePotion(command); 
+                else if (command.includes('flee') || command.includes('run')) attemptFlee();
+                else speak('Say attack, defend, special, use potion, or flee.');
                 return;
             }
 
+            // Exploration Commands
             if (command.includes('status') || command.includes('stats')) characterStatus();
             else if (command.includes('inventory') || command.includes('items')) listInventory();
             else if (command.includes('commands') || command.includes('what can i')) listCommands();
@@ -262,7 +270,6 @@
             else if (command.includes('south')) move('south');
             else if (command.includes('east')) move('east');
             else if (command.includes('west')) move('west');
-            // NEW: Added meditate command
             else if (command.includes('meditate') || command.includes('rest')) meditate(); 
             else if (command.includes('look') || command.includes('around')) describeRoom();
             else if (command.includes('search')) searchRoom();
@@ -301,8 +308,9 @@
             const size = game.dungeon.size;
             game.dungeon.grid = {};
             
-            const centerX = Math.floor(size / 2);
-            const centerY = Math.floor(size / 2);
+            // For a 6x6 grid, center is between (2,2) and (3,3). We'll set the entrance at (2,2)
+            const centerX = 2; 
+            const centerY = 2;
             
             for (let x = 0; x < size; x++) {
                 for (let y = 0; y < size; y++) {
@@ -312,7 +320,7 @@
                     const distanceFromCenter = distanceX + distanceY;
                     
                     if (x === centerX && y === centerY) {
-                        // Entrance - always center (2,2) on a 5x5 grid
+                        // Entrance at (2,2)
                         game.dungeon.grid[key] = {
                             type: 'entrance',
                             ...roomTypes.entrance,
@@ -321,7 +329,7 @@
                             hasChest: false
                         };
                     } else if (x === size - 1 && y === size - 1) { 
-                        // FIXED: Boss room at bottom-right of 5x5 grid (4,4)
+                        // FIXED: Boss room at bottom-right of 6x6 grid (5,5)
                         game.dungeon.grid[key] = {
                             type: 'boss',
                             ...roomTypes.boss,
@@ -330,51 +338,51 @@
                             hasChest: true,
                             enemy: { ...enemies.dragon }
                         };
-                    } else if (distanceFromCenter < 2) {
-                        // Close to center (distance 1) - safe rooms and treasure
-                        const type = Math.random() < 0.6 ? 'empty' : 'treasure';
-                        game.dungeon.grid[key] = {
-                            type: type,
-                            ...roomTypes[type],
-                            visited: false,
-                            searched: false,
-                            hasChest: Math.random() < 0.4
-                        };
-                    } else if (distanceFromCenter >= 2) {
-                        // Far from center (distance 2, 3, 4) - increasing difficulty
-                        const isEnemy = Math.random() < (distanceFromCenter * 0.2); // Enemy chance increases with distance
-                        if (isEnemy) {
-                            let enemyType = 'goblin';
-                            if (distanceFromCenter >= 3) enemyType = 'skeleton';
-                            if (distanceFromCenter >= 4) enemyType = 'orc';
+                    } else {
+                        // All other rooms (distance 1 to 7)
+                        let roomData = { visited: false, searched: false, hasChest: false };
+                        let isEnemy = false;
+                        let enemyType = null;
 
+                        // Density and Difficulty Logic
+                        if (distanceFromCenter >= 5) {
+                            // Deepest rooms: Highest chance of enemy/treasure
+                            isEnemy = Math.random() < 0.8;
+                            enemyType = Math.random() < 0.6 ? 'orc' : 'skeleton';
+                            roomData.hasChest = Math.random() < 0.5;
+                        } else if (distanceFromCenter >= 3) {
+                            // Mid rooms: Moderate chance of tougher enemies
+                            isEnemy = Math.random() < 0.6;
+                            enemyType = Math.random() < 0.7 ? 'skeleton' : 'orc';
+                            roomData.hasChest = Math.random() < 0.4;
+                        } else if (distanceFromCenter >= 1) {
+                            // Close rooms: Lower chance of weaker enemies/high treasure
+                            isEnemy = Math.random() < 0.4;
+                            enemyType = 'goblin';
+                            roomData.hasChest = Math.random() < 0.6;
+                        }
+
+                        if (isEnemy) {
                             game.dungeon.grid[key] = {
                                 type: 'enemy',
                                 ...roomTypes.enemy,
-                                visited: false,
-                                searched: false,
-                                hasChest: Math.random() < 0.2,
+                                ...roomData,
                                 enemy: { ...enemies[enemyType] }
                             };
-                        } else {
-                            const type = Math.random() < 0.7 ? 'treasure' : 'empty';
+                        } else if (roomData.hasChest) {
                             game.dungeon.grid[key] = {
-                                type: type,
-                                ...roomTypes[type],
-                                visited: false,
-                                searched: false,
-                                hasChest: Math.random() < 0.6
+                                type: 'treasure',
+                                ...roomTypes.treasure,
+                                ...roomData
+                            };
+                        } else {
+                            // Rooms that fail enemy/treasure checks are empty but still part of the map
+                            game.dungeon.grid[key] = {
+                                type: 'empty',
+                                ...roomTypes.empty,
+                                ...roomData
                             };
                         }
-                    } else {
-                        // Default empty room
-                        game.dungeon.grid[key] = {
-                            type: 'empty',
-                            ...roomTypes.empty,
-                            visited: false,
-                            searched: false,
-                            hasChest: Math.random() < 0.1
-                        };
                     }
                 }
             }
@@ -490,7 +498,6 @@
             }
         }
 
-        // NEW: Meditate function to restore mana
         function meditate() {
             const manaRestored = 10;
             const previousMana = game.player.mana;
@@ -521,7 +528,8 @@
             if (command.includes('attack')) playerAttack();
             else if (command.includes('defend')) playerDefend();
             else if (command.includes('special')) playerSpecial();
-            else if (command.includes('potion') || command.includes('use')) usePotion(command);
+            // Potion command checks are robust here
+            else if (command.includes('potion') || command.includes('use') || command.includes('drink')) usePotion(command); 
             else if (command.includes('flee') || command.includes('run')) attemptFlee();
             else speak('Say attack, defend, special, use potion, or flee.');
         }
@@ -560,36 +568,57 @@
             }
             
             game.player.mana -= special.cost;
-            const damage = special.damage; 
-            game.combat.enemy.health -= damage;
             
-            speakSequence([
-                `You use ${special.name}!`,
-                `${damage} damage!`,
-                `${game.combat.enemy.name} has ${Math.max(0, game.combat.enemy.health)} health left.`
-            ], () => {
-                if (game.combat.enemy.health <= 0) {
-                    setTimeout(() => combatVictory(), 1000);
-                } else {
+            if (special.type === 'damage') {
+                const damage = special.damage; 
+                game.combat.enemy.health -= damage;
+                
+                speakSequence([
+                    `You use ${special.name}!`,
+                    `${damage} damage!`,
+                    `${game.combat.enemy.name} has ${Math.max(0, game.combat.enemy.health)} health left.`
+                ], () => {
+                    if (game.combat.enemy.health <= 0) {
+                        setTimeout(() => combatVictory(), 1000);
+                    } else {
+                        setTimeout(() => enemyTurn(), 1000);
+                    }
+                });
+            } else if (special.type === 'heal') {
+                // This logic is currently unused since Mage is back to 'damage' but kept for future proofing
+                const heal = special.heal;
+                game.player.health = Math.min(game.player.maxHealth, game.player.health + heal);
+
+                speak(`You use ${special.name} and restore ${heal} health. Your health: ${game.player.health}.`, () => {
                     setTimeout(() => enemyTurn(), 1000);
-                }
-            });
+                });
+            }
         }
 
         function usePotion(command) {
             let potionType = null;
             
+            // Robust logic for identifying potion type
             if (command.includes('health')) potionType = 'Health Potion';
             else if (command.includes('mana')) potionType = 'Mana Potion';
             else {
+                // If the player just says "use potion", try to determine the most useful one
                 const healthIdx = game.player.inventory.indexOf('Health Potion');
                 const manaIdx = game.player.inventory.indexOf('Mana Potion');
-                if (healthIdx !== -1) potionType = 'Health Potion';
-                else if (manaIdx !== -1) potionType = 'Mana Potion';
+                
+                if (healthIdx !== -1 && game.player.health < game.player.maxHealth) {
+                    potionType = 'Health Potion';
+                } else if (manaIdx !== -1 && game.player.mana < game.player.maxMana) {
+                    potionType = 'Mana Potion';
+                } else if (healthIdx !== -1) {
+                    potionType = 'Health Potion'; // Fallback to whatever is available
+                } else if (manaIdx !== -1) {
+                    potionType = 'Mana Potion';
+                }
             }
             
             if (!potionType) {
-                speak('You have no potions.');
+                speak('You have no usable potions.');
                 return;
             }
             
@@ -628,8 +657,8 @@
                             game.phase = 'exploration';
                             setTimeout(() => {
                                 // Move back to entrance
-                                const centerX = Math.floor(game.dungeon.size / 2);
-                                const centerY = Math.floor(game.dungeon.size / 2);
+                                const centerX = 2; // Fixed entrance for 6x6
+                                const centerY = 2;
                                 game.player.position = { x: centerX, y: centerY };
                                 const key = `${centerX},${centerY}`;
                                 game.currentRoom = game.dungeon.grid[key];
@@ -713,11 +742,13 @@
         function characterStatus() {
             const classData = classes[game.player.class];
             const special = classData.special;
+            const specialInfo = special.type === 'damage' ? `Deals ${special.damage} damage.` : `Restores ${special.heal} health.`;
+
             speakSequence([
                 `Class: ${classData.name}.`,
                 `Health: ${game.player.health} of ${game.player.maxHealth}.`,
                 `Mana: ${game.player.mana} of ${game.player.maxMana}.`,
-                `Special ability: ${special.name}. Costs ${special.cost} mana.`,
+                `Special ability: ${special.name}. Costs ${special.cost} mana. ${specialInfo}`,
                 `Gold: ${game.player.gold}.`
             ]);
         }
@@ -744,7 +775,6 @@
             if (game.phase === 'combat') {
                 speak('Combat commands: attack, defend, special, use potion, or flee.');
             } else {
-                // UPDATED: Added meditate to help list
                 speak('Exploration commands: north, south, east, west, look around, search, open chest, meditate, status, inventory, or help.');
             }
         }
@@ -762,7 +792,6 @@
             } else {
                 speakSequence([
                     'Movement: north, south, east, west.',
-                    // UPDATED: Added meditate to command list
                     'Actions: look around, search, open chest, meditate.',
                     'Info: status, inventory, hint.',
                     'Say commands for this list.'
@@ -790,8 +819,8 @@
                 } else if (room.type === 'boss') {
                     speak('This is a boss room. Be prepared for a tough fight.');
                 } else {
-                    // UPDATED: Hint for 5x5 grid
-                    speak('Explore in different directions. The deepest part of the dungeon is at the bottom right corner (east and south).');
+                    // UPDATED: Hint for 6x6 grid
+                    speak('Explore in different directions. The deepest part of the dungeon is at the far south and east (bottom right corner).');
                 }
             }
         }
@@ -807,6 +836,7 @@
     </script>
 </body>
 </html>
+
 
 
 
