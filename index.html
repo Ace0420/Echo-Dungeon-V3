@@ -453,9 +453,9 @@
         }
 
         function initializeGame() {
-            game.initialized = true;
-            micButton.classList.remove('start-button');
-            speak("Welcome to Echo Dungeon Enhanced! Say 'load game' and provide your save PIN, or choose your class: warrior, mage, or rogue."); 
+    game.initialized = true;
+    micButton.classList.remove('start-button');
+    speak("Welcome brave adventurer! Say 'load game' to continue a saved game, or choose your class to start: warrior, mage, or rogue."); 
         }
 
         function handleClick() {
@@ -2058,11 +2058,11 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            checkBrowserSupport();
-            setTimeout(() => {
-                speak('Echo Dungeon Enhanced is ready. Tap the screen to begin.');
-            }, 1000);
-        });
+    checkBrowserSupport();
+    setTimeout(() => {
+        speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
+    }, 500);
+});
 
         micButton.addEventListener('contextmenu', (e) => e.preventDefault());
     </script>
