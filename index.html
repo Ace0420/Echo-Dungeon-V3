@@ -2169,6 +2169,11 @@
         });
 
         micButton.addEventListener('contextmenu', (e) => e.preventDefault());
+            window.addEventListener('load', () => {
+    if (!game.initialized) {
+        initializeGame();
+    }
+});
     </script>
 </body>
 </html>
