@@ -49,7 +49,6 @@
 
     <script>
         const micButton = document.getElementById('micButton');
-        checkBrowserSupport();
         const textDisplay = document.getElementById('textDisplay');
 
         function displayText(text) {
@@ -188,7 +187,7 @@
             { name: 'Amulet of the Titan', effect: '+30 Max Health', stat: 'maxHealth', value: 30 },
             { name: 'Amulet of Power', effect: '+5 Attack', stat: 'attack', value: 5 }
         ];
-      const roomTypes = {
+        const roomTypes = {
             entrance: { 
                 descriptions: [
                     'the grand entrance hall. Torches flicker on ancient stone walls.',
@@ -465,8 +464,8 @@
             } else {
                 startListening();
             }
-                      }
-      function processCommand(command) {
+        }
+        function processCommand(command) {
             if (command.includes('save game') || command.includes('save')) { 
                 saveGame(); 
                 return; 
@@ -594,7 +593,7 @@
             const sellableItems = game.player.inventory.filter(item => {
                 return equipment.weapons.some(w => w.name === item) ||
                        equipment.armor.some(a => a.name === item) ||
-                       (equipment.shields && equipment.shields.some(s => s.name === item)) ||
+                       (equipment.shields && equipment. shields.some(s => s.name === item)) ||
                        (rings.some(r => r.name === item) && !game.player.equippedRings.includes(item)) ||
                        (amulets.some(a => a.name === item) && game.player.equippedAmulet !== item) ||
                        treasures.some(t => t.name === item);
@@ -795,8 +794,10 @@
                 speak(`You equip the ${amuletName}. You now gain 20% more experience!`);
             } else if (amuletData.stat === 'attack') {
                 speak(`You equip the ${amuletName}. Your attack power increases by ${amuletData.value}!`);
-                  }
-          function readBook(command) {
+            }
+        }
+
+        function readBook(command) {
             const abilityBooks = abilities.filter(ab => 
                 game.player.inventory.includes(ab.name) && 
                 (ab.class === game.player.class || !ab.class)
@@ -1091,8 +1092,7 @@
             speakSequence(messages, () => {
                 setTimeout(() => describeRoom(), 1000);
             });
-        }
-
+                    }
         function getRandomDescription(roomType) {
             const descriptions = roomTypes[roomType].descriptions;
             return descriptions[Math.floor(Math.random() * descriptions.length)];
@@ -1274,8 +1274,8 @@
             
             if (Math.random() < 0.3) {
                 game.dungeon.hasSecretRoom = true;
-          }
-          game.player.position = { x: 5, y: 5 };
+            }
+            game.player.position = { x: 5, y: 5 };
             const key = `${game.player.position.x},${game.player.position.y}`;
             game.currentRoom = game.dungeon.grid[key];
         }
@@ -1748,111 +1748,6 @@
                 speak(`You drink a greater mana potion and restore ${actualRestore} mana. Mana: ${game.player.mana}.`, () => {
                     if (game.combat) {
                         setTimeout(() => enemyTurn(), 1000);
-            }
-                  setTimeout(() => enemyTurn(), 1000);
-                }
-                      });
-            }
-        }
-
-        function playerDefend() {
-            game.combat.playerDefending = true;
-            speak('You brace for impact.', () => {
-                setTimeout(() => enemyTurn(), 1000);
-            });
-        }
-
-        function playerSpecial() {
-            const classData = classes[game.player.class];
-            const special = classData.special;
-            
-            if (game.player.mana < special.cost) {
-                speak(`Not enough mana. You need ${special.cost}.`);
-                return;
-            }
-            
-            game.player.mana -= special.cost;
-            
-            if (special.type === 'damage') {
-                let damage = special.damage;
-                
-                if (game.player.class === 'warrior' || game.player.class === 'rogue') {
-                    damage += (game.player.level - 1) * 5;
-                } else if (game.player.class === 'mage') {
-                    damage += (game.player.level - 1) * 6;
-                }
-                
-                game.combat.enemy.health -= damage;
-                
-                speakSequence([
-                    `You unleash ${special.name}!`,
-                    `${damage} damage!`,
-                    `${game.combat.enemy.name} has ${Math.max(0, game.combat.enemy.health)} health left.`
-                ], () => {
-                    if (game.combat.enemy.health <= 0) {
-                        if (game.combat.secondEnemy && game.combat.secondEnemy.health > 0) {
-                            game.combat.enemy = game.combat.secondEnemy;
-                            game.combat.secondEnemy = null;
-                            speak(`${game.combat.enemy.name} remains! Health: ${game.combat.enemy.health}.`, () => {
-                                setTimeout(() => enemyTurn(), 1000);
-                            });
-                        } else {
-                            setTimeout(() => combatVictory(), 1000);
-                        }
-                    } else {
-                        setTimeout(() => enemyTurn(), 1000);
-                    }
-                });
-            }
-        }
-
-        function usePotion(potionType) {
-            const idx = game.player.inventory.indexOf(potionType);
-            if (idx === -1) {
-                speak(`You do not have a ${potionType}.`);
-                return;
-            }
-            
-            game.player.inventory.splice(idx, 1);
-            
-            if (potionType === 'Health Potion') {
-                const heal = 40;
-                const oldHealth = game.player.health;
-                game.player.health = Math.min(game.player.maxHealth, game.player.health + heal);
-                const actualHeal = game.player.health - oldHealth;
-                speak(`You drink a health potion and restore ${actualHeal} health. Health: ${game.player.health}.`, () => {
-                    if (game.combat) {
-                        setTimeout(() => enemyTurn(), 1000);
-                    }
-                });
-            } else if (potionType === 'Greater Health Potion') {
-                const heal = 80;
-                const oldHealth = game.player.health;
-                game.player.health = Math.min(game.player.maxHealth, game.player.health + heal);
-                const actualHeal = game.player.health - oldHealth;
-                speak(`You drink a greater health potion and restore ${actualHeal} health. Health: ${game.player.health}.`, () => {
-                    if (game.combat) {
-                        setTimeout(() => enemyTurn(), 1000);
-                    }
-                });
-            } else if (potionType === 'Mana Potion') {
-                const restore = 30;
-                const oldMana = game.player.mana;
-                game.player.mana = Math.min(game.player.maxMana, game.player.mana + restore);
-                const actualRestore = game.player.mana - oldMana;
-                speak(`You drink a mana potion and restore ${actualRestore} mana. Mana: ${game.player.mana}.`, () => {
-                    if (game.combat) {
-                        setTimeout(() => enemyTurn(), 1000);
-                    }
-                });
-            } else if (potionType === 'Greater Mana Potion') {
-                const restore = 60;
-                const oldMana = game.player.mana;
-                game.player.mana = Math.min(game.player.maxMana, game.player.mana + restore);
-                const actualRestore = game.player.mana - oldMana;
-                speak(`You drink a greater mana potion and restore ${actualRestore} mana. Mana: ${game.player.mana}.`, () => {
-                    if (game.combat) {
-                        setTimeout(() => enemyTurn(), 1000);
                     }
                 });
             }
@@ -1874,7 +1769,7 @@
                                 game.player.position = { x: centerX, y: centerY };
                                 const key = `${centerX},${centerY}`;
                                 game.currentRoom = game.dungeon.grid[key];
-                                speak('You flee back to the entrance.');
+                                speak('You fleeback to the entrance.');
                             }, 1000);
                         });
                     } else {
@@ -2170,11 +2065,6 @@
         });
 
         micButton.addEventListener('contextmenu', (e) => e.preventDefault());
-            window.addEventListener('load', () => {
-    if (!game.initialized) {
-        initializeGame();
-    }
-});
     </script>
 </body>
 </html>
