@@ -45,7 +45,7 @@
 </head>
 <body>
     <div id="textDisplay" role="status" aria-live="polite"></div>
-    <button id="micButton" class="start-button" onclick="handleClick()" aria-label="Voice command button - Tap to speak"></button>
+    <button id="micButton" class="start-button" aria-label="Voice command button - Tap to speak"></button>
 
     <script>
         const micButton = document.getElementById('micButton');
@@ -2246,45 +2246,52 @@
             }
         }
 
+                       // ... (Your entire game's function list continues right here) ...
+        
+        // --- FIXED DOMContentLoaded BLOCK ---
         document.addEventListener('DOMContentLoaded', () => {
-  checkBrowserSupport();
+            checkBrowserSupport();
+            
+            const micButton = document.getElementById('micButton');
+            if (!micButton) {
+                console.error('micButton not found');
+                return;
+            }
+            
+            // This is the CRITICAL FIX: It connects the tap to your handleClick() function.
+            micButton.addEventListener('click', handleClick);
 
-  const micButton = document.getElementById('micButton');
-  if (!micButton) {
-    console.error('micButton not found');
-    return;
-  }
+            // Wait for speech synthesis to be ready (your original robust logic)
+            if ('speechSynthesis' in window) {
+                let voicesLoaded = false;
+                speechSynthesis.onvoiceschanged = () => {
+                    if (!voicesLoaded) {
+                        voicesLoaded = true;
+                        setTimeout(() => {
+                            speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
+                        }, 500);
+                    }
+                };
+                
+                // Fallback if voices are already loaded
+                setTimeout(() => {
+                    if (!voicesLoaded && speechSynthesis.getVoices().length > 0) {
+                        voicesLoaded = true;
+                        speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
+                    }
+                }, 1000);
+            }
+        });
 
-  const welcomeMessage = 'Welcome to Echo Dungeon Enhanced! Tap the screen to begin your adventure.';
-
-  // Wait for speech synthesis voices to load before attaching event
-  function waitForVoices(callback) {
-    let voices = speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      callback();
-    } else {
-      speechSynthesis.onvoiceschanged = () => {
-        voices = speechSynthesis.getVoices();
-        if (voices.length > 0) {
-          callback();
+        // The micButton must be defined outside or checked again before use here.
+        const micButton = document.getElementById('micButton');
+        if (micButton) {
+            micButton.addEventListener('contextmenu', (e) => e.preventDefault());
         }
-      };
-    }
-  }
-
-  waitForVoices(() => {
-    function playWelcome() {
-      speak(welcomeMessage);
-      micButton.removeEventListener('click', playWelcome);
-      // You may call initializeGame() here if game start is tied to tap
-    }
-
-    micButton.addEventListener('click', playWelcome);
-  });
-});
     </script>
 </body>
 </html>
+
 
 
 
