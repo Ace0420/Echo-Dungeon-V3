@@ -2246,18 +2246,21 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            checkBrowserSupport();
-                
-                // Fallback if voices are already loaded
-                setTimeout(() => {
-                    if (!voicesLoaded && speechSynthesis.getVoices().length > 0) {
-                        voicesLoaded = true;
-                        speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
-                    }
-                }, 1000);
-            }
-        });
+        document.addEventListener("DOMContentLoaded", () => {
+  checkBrowserSupport();
+  // Require a user gesture to start
+  const startMessage = "Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.";
+  function playWelcome() {
+    speak(startMessage, () => {
+      // Remove listener after first tap
+      micButton.removeEventListener("click", playWelcome);
+      initializeGame(); // Continue the normal startup
+    });
+  }
+
+  // Wait until the user taps to trigger speechSynthesis
+  micButton.addEventListener("click", playWelcome);
+});
     </script>
 </body>
 </html>
