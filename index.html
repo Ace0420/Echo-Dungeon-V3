@@ -600,7 +600,7 @@
                 game.player.inventory.push(game.player.weapon);
             }
             
-            game.player.inventory.indexOf(weaponToEquip);
+            const idx = game.player.inventory.indexOf(weaponToEquip);
             game.player.inventory.splice(idx, 1);
             game.player.weapon = weaponToEquip;
             game.player.baseAttack = weaponData.attack;
@@ -2243,8 +2243,7 @@
                     speak('Explore in different directions. The boss is at the far south east corner. Look for merchants to buy potions and sell loot.');
                 }
             } 
-        }// ... (Your 'giveHint' function ends here)
-
+        }
         // --- FIXED DOMContentLoaded BLOCK ---
         document.addEventListener('DOMContentLoaded', () => {
             checkBrowserSupport();
