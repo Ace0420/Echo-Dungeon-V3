@@ -2219,11 +2219,10 @@
             if (game.phase === 'combat') {
                 if (game.player.health < 30) {
                     speak('Your health is low. Consider using a health potion or defending.');
-                } else if (game.player.mana >= classes[game.player.class].special.cost) {
+                } else if } (game.player.mana >= classes[game.player.class].special.cost) {
                     speak(`You have enough mana for ${classes[game.player.class].special.name}.`);
                 } else {
                     speak('Try attacking or defending based on your health.');
-                }
             } else {
                 const room = game.currentRoom;
                 if (room.type === 'stairs') {
