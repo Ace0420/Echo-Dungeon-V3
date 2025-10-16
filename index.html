@@ -2246,6 +2246,7 @@
         }
         // --- FIXED DOMContentLoaded BLOCK ---
         document.addEventListener('DOMContentLoaded', () => {
+                document.addEventListener('DOMContentLoaded', () => {
             checkBrowserSupport();
             
             const micButton = document.getElementById('micButton');
@@ -2254,29 +2255,9 @@
                 return;
             }
             
-            // CRITICAL FIX LINE: This connects the button tap to your game logic.
+            // This connects the button tap to your game logic.
             micButton.addEventListener('click', handleClick);
 
-            // Wait for speech synthesis to be ready (your original robust logic)
-            if ('speechSynthesis' in window) {
-                let voicesLoaded = false;
-                speechSynthesis.onvoiceschanged = () => {
-                    if (!voicesLoaded) {
-                        voicesLoaded = true;
-                        setTimeout(() => {
-                            speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
-                        }, 500);
-                    }
-                };
-                
-                // Fallback if voices are already loaded
-                setTimeout(() => {
-                    if (!voicesLoaded && speechSynthesis.getVoices().length > 0) {
-                        voicesLoaded = true;
-                        speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
-                    }
-                }, 1000);
-            }
         });
 
         // Re-define micButton here for the contextmenu listener, which is outside the block
@@ -2287,6 +2268,7 @@
     </script>
 </body>
 </html>
+
 
 
 
