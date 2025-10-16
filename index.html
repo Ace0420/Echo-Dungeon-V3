@@ -45,7 +45,8 @@
 </head>
 <body>
     <div id="textDisplay" role="status" aria-live="polite"></div>
-    <button id="micButton" class="start-button" onclick="handleClick()" aria-label="Voice command button - Tap to speak"></button>
+    <button id="micButton" cl
+    <button id="micButton" class="start-button" aria-label="Voice command button - Tap to speak"></button>
 
     <script>
         const micButton = document.getElementById('micButton');
@@ -2243,73 +2244,52 @@
                 } else {
                     speak('Explore in different directions. The boss is at the far south east corner. Look for merchants to buy potions and sell loot.');
                 }
+            }        // ... (Your 'giveHint' function ends here)
+
+        // --- FIXED DOMContentLoaded BLOCK ---
+        document.addEventListener('DOMContentLoaded', () => {
+            checkBrowserSupport();
+            
+            const micButton = document.getElementById('micButton');
+            if (!micButton) {
+                console.error('micButton not found');
+                return;
             }
+            
+            // CRITICAL FIX LINE: This connects the button tap to your game logic.
+            micButton.addEventListener('click', handleClick);
+
+            // Wait for speech synthesis to be ready (your original robust logic)
+            if ('speechSynthesis' in window) {
+                let voicesLoaded = false;
+                speechSynthesis.onvoiceschanged = () => {
+                    if (!voicesLoaded) {
+                        voicesLoaded = true;
+                        setTimeout(() => {
+                            speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
+                        }, 500);
+                    }
+                };
+                
+                // Fallback if voices are already loaded
+                setTimeout(() => {
+                    if (!voicesLoaded && speechSynthesis.getVoices().length > 0) {
+                        voicesLoaded = true;
+                        speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
+                    }
+                }, 1000);
+            }
+        });
+
+        // Re-define micButton here for the contextmenu listener, which is outside the block
+        const micButton = document.getElementById('micButton');
+        if (micButton) {
+            micButton.addEventListener('contextmenu', (e) => e.preventDefault());
         }
-
-                document.addEventListener("DOMContentLoaded", () => {
-  const micButton = document.getElementById("micButton");
-  if (!micButton) {
-    console.error("micButton not found");
-    return;
-  }
-
-  // Add tap event listener to micButton to start or continue the game
-  micButton.addEventListener("click", handleClick);
-
-  // Wait for voices to load and then speak welcome greeting
-  let voicesLoaded = false;
-  if ("speechSynthesis" in window) {
-    speechSynthesis.onvoiceschanged = () => {
-      if (!voicesLoaded) {
-        voicesLoaded = true;
-        setTimeout(() => speakWelcome("Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure."), 500);
-      }
-    };
-    if (speechSynthesis.getVoices().length > 0) {
-      voicesLoaded = true;
-      setTimeout(() => speakWelcome("Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure."), 1000);
-    }
-  }
-});
-
-function speakWelcome(message) {
-  if (!("speechSynthesis" in window)) {
-    console.warn("Speech synthesis not supported");
-    return;
-  }
-  speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(message);
-  utterance.pitch = 1;
-  utterance.rate = 1;
-  speechSynthesis.speak(utterance);
-}
-
-let gameInitialized = false;
-
-function handleClick() {
-  if (!gameInitialized) {
-    initializeGame();
-    gameInitialized = true;
-  } else {
-    startListening();
-  }
-}
-
-function initializeGame() {
-            game.initialized = true;
-            micButton.classList.remove('start-button');
-            
-            // Force speech to work by testing it first
-            const testUtterance = new SpeechSynthesisUtterance('');
-            speechSynthesis.speak(testUtterance);
-            
-            setTimeout(() => {
-                speak("Welcome Lisa! You brave adventurer! Say 'load game' to continue a saved game, or choose your class to start: warrior, mage, or rogue.");
-            }, 200);
-}
     </script>
 </body>
 </html>
+
 
 
 
