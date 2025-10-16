@@ -45,7 +45,6 @@
 </head>
 <body>
     <div id="textDisplay" role="status" aria-live="polite"></div>
-    <button id="micButton" cl
     <button id="micButton" class="start-button" aria-label="Voice command button - Tap to speak" onclick="handleClick()"></button>
 
     <script>
@@ -601,7 +600,7 @@
                 game.player.inventory.push(game.player.weapon);
             }
             
-            const idx = game.player.inventory.indexOf(const idx = game.player.inventory.indexOf(weaponToEquip);
+            game.player.inventory.indexOf(weaponToEquip);
             game.player.inventory.splice(idx, 1);
             game.player.weapon = weaponToEquip;
             game.player.baseAttack = weaponData.attack;
@@ -2244,7 +2243,8 @@
                 } else {
                     speak('Explore in different directions. The boss is at the far south east corner. Look for merchants to buy potions and sell loot.');
                 }
-            }        // ... (Your 'giveHint' function ends here)
+            } 
+        }// ... (Your 'giveHint' function ends here)
 
         // --- FIXED DOMContentLoaded BLOCK ---
         document.addEventListener('DOMContentLoaded', () => {
