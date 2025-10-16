@@ -2246,19 +2246,41 @@
             }
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener('DOMContentLoaded', () => {
   checkBrowserSupport();
 
-  // Only play greeting when tapping the screen/mic button
-  const welcome = "Welcome to Echo Dungeon. Tap again to start your adventure.";
-  function greetOnFirstTap() {
-    speak(welcome);
-    micButton.removeEventListener("click", greetOnFirstTap);
-    // Optionally, you can call your game start/init code here if needed
-    // initializeGame();
+  const micButton = document.getElementById('micButton');
+  if (!micButton) {
+    console.error('micButton not found');
+    return;
   }
-    // Wait until the user taps to trigger speechSynthesis
-  micButton.addEventListener("click", playWelcome);
+
+  const welcomeMessage = 'Welcome to Echo Dungeon Enhanced! Tap the screen to begin your adventure.';
+
+  // Wait for speech synthesis voices to load before attaching event
+  function waitForVoices(callback) {
+    let voices = speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      callback();
+    } else {
+      speechSynthesis.onvoiceschanged = () => {
+        voices = speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          callback();
+        }
+      };
+    }
+  }
+
+  waitForVoices(() => {
+    function playWelcome() {
+      speak(welcomeMessage);
+      micButton.removeEventListener('click', playWelcome);
+      // You may call initializeGame() here if game start is tied to tap
+    }
+
+    micButton.addEventListener('click', playWelcome);
+  });
 });
     </script>
 </body>
