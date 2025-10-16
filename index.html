@@ -2248,18 +2248,6 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             checkBrowserSupport();
-            
-            // Wait for speech synthesis to be ready
-            if ('speechSynthesis' in window) {
-                let voicesLoaded = false;
-                speechSynthesis.onvoiceschanged = () => {
-                    if (!voicesLoaded) {
-                        voicesLoaded = true;
-                        setTimeout(() => {
-                            speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
-                        }, 500);
-                    }
-                };
                 
                 // Fallback if voices are already loaded
                 setTimeout(() => {
