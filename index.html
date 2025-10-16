@@ -461,13 +461,39 @@
             speak("Welcome brave adventurer! Say 'load game' to continue a saved game, or choose your class to start: warrior, mage, or rogue."); 
         }
 
-        function handleClick() {
-            if (!game.initialized) {
-                initializeGame();
-            } else {
-                startListening();
-            }
+        let audioMicUnlocked = false;
+
+async function handleClick() {
+    // 1. First, handle the required one-time audio/mic unlock
+    if (!audioMicUnlocked) {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            
+            // Wait for microphone permission
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioMicUnlocked = true;
+            
+            // Remove the hint message once the button is tapped
+            const hint = document.getElementById('tap-hint');
+            if (hint) hint.remove();
+
+        } catch (err) {
+            console.warn('Mic or audio unlock failed:', err);
+            speak('Error: Please allow microphone and audio access for the game to start. Then tap again.');
+            return;
         }
+    }
+    
+    // 2. Then, proceed with game logic
+    if (!game.initialized) {
+        initializeGame();
+    } else {
+        startListening();
+    }
+}
+
         function processCommand(command) {
             if (command.includes('save game') || command.includes('save')) { 
                 saveGame(); 
@@ -2245,29 +2271,35 @@
             } 
         }
         // --- FIXED DOMContentLoaded BLOCK ---
-        document.addEventListener('DOMContentLoaded', () => {
-                document.addEventListener('DOMContentLoaded', () => {
-            checkBrowserSupport();
-            
-            const micButton = document.getElementById('micButton');
-            if (!micButton) {
-                console.error('micButton not found');
-                return;
-            }
-            
-            // This connects the button tap to your game logic.
-            micButton.addEventListener('click', handleClick);
+            <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const hint = document.createElement('div');
+    hint.id = 'tap-hint';
+    hint.textContent = 'Tap the large blue button to begin the game.';
+    
+    // Improve button's accessibility label (already done in the HTML, but good to ensure)
+    const micButton = document.getElementById('micButton');
+    if (micButton) {
+        micButton.setAttribute('aria-label', 'Tap to start the game and grant microphone permission.');
+    }
 
-        });
-
-        // Re-define micButton here for the contextmenu listener, which is outside the block
-        const micButton = document.getElementById('micButton');
-        if (micButton) {
-            micButton.addEventListener('contextmenu', (e) => e.preventDefault());
-        }
+    Object.assign(hint.style, {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        color: 'white',
+        fontFamily: 'sans-serif',
+        fontSize: '1.5em',
+        textAlign: 'center',
+        zIndex: '100'
+    });
+    document.body.appendChild(hint);
+});
     </script>
 </body>
 </html>
+
 
 
 
