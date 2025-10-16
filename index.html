@@ -2246,48 +2246,68 @@
             }
         }
 
-                // ... (Your entire game's function list continues right here) ...
-        
-        // --- FIXED DOMContentLoaded BLOCK ---
-        document.addEventListener('DOMContentLoaded', () => {
-            checkBrowserSupport();
-            
-            const micButton = document.getElementById('micButton');
-            if (!micButton) {
-                console.error('micButton not found');
-                return;
-            }
-            
-            // This is the CRITICAL FIX: It connects the tap to your handleClick() function.
-            micButton.addEventListener('click', handleClick);
+                document.addEventListener("DOMContentLoaded", () => {
+  const micButton = document.getElementById("micButton");
+  if (!micButton) {
+    console.error("micButton not found");
+    return;
+  }
 
-            // Wait for speech synthesis to be ready (your original robust logic)
-            if ('speechSynthesis' in window) {
-                let voicesLoaded = false;
-                speechSynthesis.onvoiceschanged = () => {
-                    if (!voicesLoaded) {
-                        voicesLoaded = true;
-                        setTimeout(() => {
-                            speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
-                        }, 500);
-                    }
-                };
-                
-                // Fallback if voices are already loaded
-                setTimeout(() => {
-                    if (!voicesLoaded && speechSynthesis.getVoices().length > 0) {
-                        voicesLoaded = true;
-                        speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
-                    }
-                }, 1000);
-            }
-        });
+  // Add tap event listener to micButton to start or continue the game
+  micButton.addEventListener("click", handleClick);
 
-        // The micButton must be defined outside or checked again before use here.
-        const micButton = document.getElementById('micButton');
-        if (micButton) {
-            micButton.addEventListener('contextmenu', (e) => e.preventDefault());
-        }
+  // Wait for voices to load and then speak welcome greeting
+  let voicesLoaded = false;
+  if ("speechSynthesis" in window) {
+    speechSynthesis.onvoiceschanged = () => {
+      if (!voicesLoaded) {
+        voicesLoaded = true;
+        setTimeout(() => speakWelcome("Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure."), 500);
+      }
+    };
+    if (speechSynthesis.getVoices().length > 0) {
+      voicesLoaded = true;
+      setTimeout(() => speakWelcome("Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure."), 1000);
+    }
+  }
+});
+
+function speakWelcome(message) {
+  if (!("speechSynthesis" in window)) {
+    console.warn("Speech synthesis not supported");
+    return;
+  }
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.pitch = 1;
+  utterance.rate = 1;
+  speechSynthesis.speak(utterance);
+}
+
+let gameInitialized = false;
+
+function handleClick() {
+  if (!gameInitialized) {
+    initializeGame();
+    gameInitialized = true;
+  } else {
+    startListening();
+  }
+}
+
+// Complete initializeGame function including UI changes and greeting
+function initializeGame() {
+  // Remove start-button styling so game canvas/UI shows
+  const micButton = document.getElementById("micButton");
+  if (micButton) {
+    micButton.classList.remove("start-button");
+  }
+
+  // Display some text or update UI here if needed
+
+  // Speak the initial greeting
+  speakWelcome("Welcome to Echo Dungeon V-3, Lisa! Tap anywhere on the screen to begin your adventure.");
+}
     </script>
 </body>
 </html>
