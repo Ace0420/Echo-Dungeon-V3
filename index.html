@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Echo Dungeon Enhanced</title>
+    <title>Echo Dungeon V3</title>
     <style>
         body {
             margin: 0;
@@ -2246,10 +2246,22 @@
             }
         }
 
+                // ... (Your entire game's function list continues right here) ...
+        
+        // --- FIXED DOMContentLoaded BLOCK ---
         document.addEventListener('DOMContentLoaded', () => {
             checkBrowserSupport();
             
-            // Wait for speech synthesis to be ready
+            const micButton = document.getElementById('micButton');
+            if (!micButton) {
+                console.error('micButton not found');
+                return;
+            }
+            
+            // This is the CRITICAL FIX: It connects the tap to your handleClick() function.
+            micButton.addEventListener('click', handleClick);
+
+            // Wait for speech synthesis to be ready (your original robust logic)
             if ('speechSynthesis' in window) {
                 let voicesLoaded = false;
                 speechSynthesis.onvoiceschanged = () => {
@@ -2270,9 +2282,16 @@
                 }, 1000);
             }
         });
+
+        // The micButton must be defined outside or checked again before use here.
+        const micButton = document.getElementById('micButton');
+        if (micButton) {
+            micButton.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
     </script>
 </body>
 </html>
+
 
 
 
