@@ -2248,12 +2248,28 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             checkBrowserSupport();
-            setTimeout(() => {
-                speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
-            }, 500);
+            
+            // Wait for speech synthesis to be ready
+            if ('speechSynthesis' in window) {
+                let voicesLoaded = false;
+                speechSynthesis.onvoiceschanged = () => {
+                    if (!voicesLoaded) {
+                        voicesLoaded = true;
+                        setTimeout(() => {
+                            speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
+                        }, 500);
+                    }
+                };
+                
+                // Fallback if voices are already loaded
+                setTimeout(() => {
+                    if (!voicesLoaded && speechSynthesis.getVoices().length > 0) {
+                        voicesLoaded = true;
+                        speak('Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.');
+                    }
+                }, 1000);
+            }
         });
-
-        micButton.addEventListener('contextmenu', (e) => e.preventDefault());
     </script>
 </body>
 </html>
