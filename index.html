@@ -2248,17 +2248,16 @@
 
         document.addEventListener("DOMContentLoaded", () => {
   checkBrowserSupport();
-  // Require a user gesture to start
-  const startMessage = "Welcome to Echo Dungeon Enhanced! Tap anywhere on the screen to begin your adventure.";
-  function playWelcome() {
-    speak(startMessage, () => {
-      // Remove listener after first tap
-      micButton.removeEventListener("click", playWelcome);
-      initializeGame(); // Continue the normal startup
-    });
-  }
 
-  // Wait until the user taps to trigger speechSynthesis
+  // Only play greeting when tapping the screen/mic button
+  const welcome = "Welcome to Echo Dungeon. Tap again to start your adventure.";
+  function greetOnFirstTap() {
+    speak(welcome);
+    micButton.removeEventListener("click", greetOnFirstTap);
+    // Optionally, you can call your game start/init code here if needed
+    // initializeGame();
+  }
+    // Wait until the user taps to trigger speechSynthesis
   micButton.addEventListener("click", playWelcome);
 });
     </script>
