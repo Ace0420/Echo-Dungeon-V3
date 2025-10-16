@@ -2295,18 +2295,17 @@ function handleClick() {
   }
 }
 
-// Complete initializeGame function including UI changes and greeting
 function initializeGame() {
-  // Remove start-button styling so game canvas/UI shows
-  const micButton = document.getElementById("micButton");
-  if (micButton) {
-    micButton.classList.remove("start-button");
-  }
-
-  // Display some text or update UI here if needed
-
-  // Speak the initial greeting
-  speakWelcome("Welcome to Echo Dungeon V-3, Lisa! Tap anywhere on the screen to begin your adventure.");
+            game.initialized = true;
+            micButton.classList.remove('start-button');
+            
+            // Force speech to work by testing it first
+            const testUtterance = new SpeechSynthesisUtterance('');
+            speechSynthesis.speak(testUtterance);
+            
+            setTimeout(() => {
+                speak("Welcome Lisa! You brave adventurer! Say 'load game' to continue a saved game, or choose your class to start: warrior, mage, or rogue.");
+            }, 200);
 }
     </script>
 </body>
