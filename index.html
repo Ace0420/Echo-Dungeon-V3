@@ -461,30 +461,45 @@
             speak("Welcome brave adventurer! Say 'load game' to continue a saved game, or choose your class to start: warrior, mage, or rogue."); 
         }
 
-        let audioMicUnlocked = false;
+        let audioMicUnlocked = false; // Flag to ensure unlock only runs once
+let audioCtx = null; // Declare the audio context for reliable handling
 
-async function handleClick() {
-    // 1. First, handle the required one-time audio/mic unlock
-    if (!audioMicUnlocked) {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
-            
-            // Wait for microphone permission
-            await navigator.mediaDevices.getUserMedia({ audio: true });
-            audioMicUnlocked = true;
-            
-            // Remove the hint message once the button is tapped
-            const hint = document.getElementById('tap-hint');
-            if (hint) hint.remove();
+// This function attempts to initialize audio and mic on a user gesture.
+async function unlockAudioAndMic() {
+    if (audioMicUnlocked) return true; // Already unlocked
 
-        } catch (err) {
-            console.warn('Mic or audio unlock failed:', err);
-            speak('Error: Please allow microphone and audio access for the game to start. Then tap again.');
-            return;
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
         }
+        
+        // This is the core permission request
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        audioMicUnlocked = true;
+
+        // Remove the visual hint
+        const hint = document.getElementById('tap-hint');
+        if (hint) hint.remove();
+
+        console.log("Audio and Mic unlocked successfully.");
+
+    } catch (err) {
+        console.warn('Mic or audio unlock failed:', err);
+        speak('Error: Please allow microphone and audio access for the game to start. Then tap again.');
+        // Return false if permissions fail
+        return false; 
     }
+    return true;
+}
+
+// The function tied to the button tap
+async function handleClick() {
+    // 1. Attempt to unlock audio/mic first
+    const success = await unlockAudioAndMic();
+    if (!success) return; // Stop if unlock failed
     
     // 2. Then, proceed with game logic
     if (!game.initialized) {
