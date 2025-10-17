@@ -1026,6 +1026,8 @@
     } else if (itemType === 'armor') {
         game.player.armor = itemToEquip;
         const armorData = equipment.armor.find(a => a.name === itemToEquip);
+        
+        // Recalculate total defense
         game.player.defense = armorData.defense;
         
         // Add shield defense if equipped
@@ -1035,8 +1037,6 @@
                 game.player.defense += shieldData.defense;
             }
         }
-        
-        speak(`You equip ${itemToEquip}. Defense is now ${game.player.defense}.`);
     } else if (itemType === 'shield') {
         game.player.shield = itemToEquip;
         const shieldData = equipment.shields.find(s => s.name === itemToEquip);
