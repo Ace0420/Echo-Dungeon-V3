@@ -173,7 +173,7 @@
             { name: 'Icy Blast', damage: 25, cost: 25, type: 'freeze', description: 'Deals damage and freezes enemy for 1 turn', class: 'mage' },
             { name: 'Shield Bash', damage: 30, cost: 20, type: 'stun', description: 'Stun enemy for one turn', class: 'warrior' },
             { name: 'Poison Blade', damage: 20, cost: 20, type: 'poison', duration: 3, description: 'Poison damages 5 per turn for 3 turns', class: 'rogue' },
-            { name: 'Chain Lightning', damage: 35, cost: 30, type: 'damage', description: 'Devastating lightning attack', class: 'mage' },
+            { name: 'Chain Lightning', damage: 45, cost: 30, type: 'damage', description: 'Devastating lightning attack that chains multiple enemies', class: 'mage' },
             { name: 'Arcane Missiles', damage: 22, cost: 18, type: 'damage', description: 'Multiple magic missiles', class: 'mage' },
             { name: 'Whirlwind', damage: 28, cost: 25, type: 'damage', description: 'Spin attack dealing massive damage', class: 'warrior' },
             { name: 'Shadow Strike', damage: 32, cost: 22, type: 'damage', description: 'Strike from the shadows', class: 'rogue' }
@@ -484,19 +484,19 @@
             }
 
             if (game.merchantOpen) {
-                if (command.includes('leave') || command.includes('exit') || command.includes('close')) {
-                    game.merchantOpen = false;
-                    speak('You leave the merchant.');
-                } else if (command.includes('buy')) {
-                    buyFromMerchant(command);
-                } else if (command.includes('sell')) {
-                    sellToMerchant(command);
-                } else if (command.includes('what') || command.includes('wares') || command.includes('stock')) {
-                    listMerchantWares();
-                } else {
-                    speak('Say buy, sell, what do you have, or leave.');
-                }
-                return;
+  if (command.includes("leave") || command.includes("exit") || command.includes("close")) {
+    game.merchantOpen = false;
+    speak("You leave the merchant.");
+  } else if (command.includes("buy") || command.includes("purchase")) {
+    buyFromMerchant(command);
+  } else if (command.includes("sell")) {
+    sellToMerchant(command);
+  } else if (command.includes("what") || command.includes("wares") || command.includes("stock")) {
+    listMerchantWares();
+  } else {
+    speak("Say buy, purchase, sell, what do you have, or leave.");
+  }
+  return;
             }
 
             if (game.needsClass) {
@@ -946,6 +946,25 @@
                         setTimeout(() => enemyTurn(), 1000);
                     }
                 });
+                else if (spellToCast.name === "Chain Lightning") {
+  let baseDamage = spellToCast.damage + (game.player.level * 6);
+  let currentDamage = baseDamage;
+  const targets = [game.combat.enemy, game.combat.secondEnemy].filter(e => e && e.health > 0);
+  
+  for (let i = 0; i < targets.length; i++) {
+    const enemy = targets[i];
+    enemy.health -= Math.floor(currentDamage);
+    speak(`Lightning arcs to ${enemy.name} for ${Math.floor(currentDamage)} damage!`);
+    currentDamage *= 0.75;
+  }
+
+  setTimeout(() => {
+    if (game.combat.enemy.health <= 0 && game.combat.secondEnemy?.health <= 0)
+      combatVictory();
+    else
+      enemyTurn();
+  }, 1000);
+       }
             } else if (spellToCast.type === 'damage') {
                 let levelBonus = 0;
                 if (game.player.class === 'warrior' || game.player.class === 'rogue') {
@@ -1140,6 +1159,10 @@
             
             const armorData = equipment.armor.find(a => a.name === game.player.armor);
             game.player.defense = armorData ? armorData.defense : 0;
+              if (className === "warrior" && game.player.armor) {
+    const armorData = equipment.armor.find(a => a.name === game.player.armor);
+    if (armorData) game.player.defense = armorData.defense;
+              }
             
             if (game.player.shield && equipment.shields) {
                 const shieldData = equipment.shields.find(s => s.name === game.player.shield);
