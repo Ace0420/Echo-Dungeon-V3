@@ -172,8 +172,8 @@
         const abilities = [
             { name: 'Icy Blast', damage: 25, cost: 25, type: 'freeze', description: 'Deals damage and freezes enemy for 1 turn', class: 'mage' },
             { name: 'Shield Bash', damage: 30, cost: 20, type: 'stun', description: 'Stun enemy for one turn', class: 'warrior' },
-            { name: 'Poison Blade', damage: 20, cost: 20, type: 'poison', duration: 3, description: 'PoisellableItem 10 per turn for 3 turns', class: 'rogue' },
-            { name: 'Chain Lightning', damage: 40, cost: 30, type: 'damage', description: 'Lightning attack that deals damage across multiple enemies, class: 'mage' },
+            { name: 'Poison Blade', damage: 20, cost: 20, type: 'poison', duration: 3, description: 'Poison damages 10 per turn for 3 turns', class: 'rogue' },
+            { name: 'Chain Lightning', damage: 40, cost: 30, type: 'damage', description: 'Lightning attack that chains damage across multiple enemies, class: 'mage' },
             { name: 'Arcane Missiles', damage: 22, cost: 18, type: 'damage', description: 'Multiple magic missiles', class: 'mage' },
             { name: 'Whirlwind', damage: 38, cost: 25, type: 'aoe', description: 'Spin attack dealing full damage to all enemies', class: 'warrior' },
             { name: 'Shadow Strike', damage: 32, cost: 22, type: 'damage', description: 'Strike from the shadows', class: 'rogue' }
@@ -930,7 +930,7 @@
                 const baseDamage = spellToCast.damage;
                 const levelBonus = (game.player.class === 'warrior' || game.player.class === 'rogue') ? game.player.level * 5 : 0;
                 const totalDamage = baseDamage + levelBonus;
-                const poisonDamage = 5 + Math.floor(game.player.level * 0.5);
+                const poisonDamage = 8 + Math.floor(game.player.level * 1.5);
                 
                 game.combat.enemy.health -= totalDamage;
                 game.combat.enemy.poisoned = { damage: poisonDamage, duration: spellToCast.duration };
