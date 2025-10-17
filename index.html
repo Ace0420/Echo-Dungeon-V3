@@ -109,33 +109,33 @@
         const classes = {
             warrior: {
                 name: 'Warrior',
-                health: 120,
-                maxHealth: 120,
-                mana: 30,
-                maxMana: 30,
+                health: 150,
+                maxHealth: 150,
+                mana: 40,
+                maxMana: 40,
                 gold: 50,
                 items: ['Steel Sword', 'Health Potion', 'Health Potion', 'Chainmail', 'Iron Shield'],
-                special: { name: 'Power Strike', damage: 40, cost: 15, type: 'damage' }
+                special: { name: 'Power Strike', damage: 60, cost: 15, type: 'damage' }
             },
             mage: { 
                 name: 'Mage',
                 health: 80,
                 maxHealth: 80,
-                mana: 100,
-                maxMana: 100,
+                mana: 125,
+                maxMana: 125,
                 gold: 75,
                 items: ['Mystic Staff', 'Mana Potion', 'Health Potion', 'Enchanted Robes'],
-                special: { name: 'Fireball', damage: 30, cost: 20, type: 'damage' } 
+                special: { name: 'Fireball', damage: 35, cost: 20, type: 'damage' } 
             },
             rogue: {
                 name: 'Rogue',
                 health: 100,
                 maxHealth: 100,
-                mana: 60,
+                mana: 70,
                 maxMana: 60,
                 gold: 100,
                 items: ['Shadow Daggers', 'Lockpicks', 'Health Potion', 'Shadow Leather'],
-                special: { name: 'Backstab', damage: 35, cost: 25, type: 'damage' }
+                special: { name: 'Backstab', damage: 45, cost: 25, type: 'damage' }
             }
         };
 
@@ -170,12 +170,12 @@
         };
 
         const abilities = [
-            { name: 'Icy Blast', damage: 25, cost: 25, type: 'freeze', description: 'Deals damage and freezes enemy for 1 turn', class: 'mage' },
-            { name: 'Shield Bash', damage: 30, cost: 20, type: 'stun', description: 'Stun enemy for one turn', class: 'warrior' },
+            { name: 'Icy Blast', damage: 35, cost: 25, type: 'freeze', description: 'Deals damage and freezes enemy for 1 turn', class: 'mage' },
+            { name: 'Shield Bash', damage: 40, cost: 20, type: 'stun', description: 'Stun enemy for one turn', class: 'warrior' },
             { name: 'Poison Blade', damage: 20, cost: 20, type: 'poison', duration: 3, description: 'Poison damages 5 per turn for 3 turns', class: 'rogue' },
-            { name: 'Chain Lightning', damage: 35, cost: 30, type: 'damage', description: 'Devastating lightning attack', class: 'mage' },
-            { name: 'Arcane Missiles', damage: 22, cost: 18, type: 'damage', description: 'Multiple magic missiles', class: 'mage' },
-            { name: 'Whirlwind', damage: 28, cost: 25, type: 'damage', description: 'Spin attack dealing massive damage', class: 'warrior' },
+            { name: 'Chain Lightning', damage: 45, cost: 30, type: 'damage', description: 'Multiple enemies lightning attack', class: 'mage' },
+            { name: 'Arcane Missiles', damage: 42, cost: 18, type: 'damage', description: 'Multiple magic missiles', class: 'mage' },
+            { name: 'Whirlwind', damage: 38, cost: 25, type: 'damage', description: 'Spin attack dealing massive damage', class: 'warrior' },
             { name: 'Shadow Strike', damage: 32, cost: 22, type: 'damage', description: 'Strike from the shadows', class: 'rogue' }
         ];
 
@@ -946,6 +946,25 @@
                         setTimeout(() => enemyTurn(), 1000);
                     }
                 });
+                else if (spellToCast.name === "Chain Lightning") {
+  let baseDamage = spellToCast.damage + (game.player.level * 6);
+  let currentDamage = baseDamage;
+  const targets = [game.combat.enemy, game.combat.secondEnemy].filter(e => e && e.health > 0);
+  
+  for (let i = 0; i < targets.length; i++) {
+    const enemy = targets[i];
+    enemy.health -= Math.floor(currentDamage);
+    speak(`Lightning arcs to ${enemy.name} for ${Math.floor(currentDamage)} damage!`);
+    currentDamage *= 0.75;
+  }
+
+  setTimeout(() => {
+    if (game.combat.enemy.health <= 0 && game.combat.secondEnemy?.health <= 0)
+      combatVictory();
+    else
+      enemyTurn();
+  }, 1000);
+     }
             } else if (spellToCast.type === 'damage') {
                 let levelBonus = 0;
                 if (game.player.class === 'warrior' || game.player.class === 'rogue') {
