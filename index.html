@@ -971,8 +971,91 @@
             }
         }
 
+        function equipWeaponOrArmor(command) {
+    // Check for weapons
+    const weaponNames = equipment.weapons.map(w => w.name.toLowerCase());
+    const armorNames = equipment.armor.map(a => a.name.toLowerCase());
+    const shieldNames = equipment.shields ? equipment.shields.map(s => s.name.toLowerCase()) : [];
+    
+    let itemToEquip = null;
+    let itemType = null;
+    
+    // Find weapon in inventory
+    for (let item of game.player.inventory) {
+        if (command.includes(item.toLowerCase())) {
+            if (weaponNames.includes(item.toLowerCase())) {
+                itemToEquip = item;
+                itemType = 'weapon';
+                break;
+            } else if (armorNames.includes(item.toLowerCase())) {
+                itemToEquip = item;
+                itemType = 'armor';
+                break;
+            } else if (shieldNames.includes(item.toLowerCase())) {
+                itemToEquip = item;
+                itemType = 'shield';
+                break;
+            }
+        }
+    }
+    
+    if (!itemToEquip) {
+        speak('You do not have that equipment. Check your inventory.');
+        return;
+    }
+    
+    // Remove from inventory
+    const itemIndex = game.player.inventory.indexOf(itemToEquip);
+    game.player.inventory.splice(itemIndex, 1);
+    
+    // Unequip old item and add to inventory
+    if (itemType === 'weapon' && game.player.weapon) {
+        game.player.inventory.push(game.player.weapon);
+    } else if (itemType === 'armor' && game.player.armor) {
+        game.player.inventory.push(game.player.armor);
+    } else if (itemType === 'shield' && game.player.shield) {
+        game.player.inventory.push(game.player.shield);
+    }
+    
+    // Equip new item
+    if (itemType === 'weapon') {
+        game.player.weapon = itemToEquip;
+        const weaponData = equipment.weapons.find(w => w.name === itemToEquip);
+        game.player.baseAttack = weaponData.attack;
+        speak(`You equip ${itemToEquip}. Attack is now ${weaponData.attack}.`);
+    } else if (itemType === 'armor') {
+        game.player.armor = itemToEquip;
+        const armorData = equipment.armor.find(a => a.name === itemToEquip);
+        game.player.defense = armorData.defense;
+        
+        // Add shield defense if equipped
+        if (game.player.shield && equipment.shields) {
+            const shieldData = equipment.shields.find(s => s.name === game.player.shield);
+            if (shieldData) {
+                game.player.defense += shieldData.defense;
+            }
+        }
+        
+        speak(`You equip ${itemToEquip}. Defense is now ${game.player.defense}.`);
+    } else if (itemType === 'shield') {
+        game.player.shield = itemToEquip;
+        const shieldData = equipment.shields.find(s => s.name === itemToEquip);
+        
+        // Recalculate defense with shield
+        const armorData = equipment.armor.find(a => a.name === game.player.armor);
+        game.player.defense = (armorData ? armorData.defense : 0) + shieldData.defense;
+        
+        speak(`You equip ${itemToEquip}. Defense is now ${game.player.defense}.`);
+    }
+        }
         function equipItem(command) {
-            speak('Say "wear ring" to equip rings, or "equip amulet" for amulets.');
+    if (command.includes('ring')) {
+        speak('Say "wear ring" to equip rings.');
+    } else if (command.includes('amulet')) {
+        speak('Say "equip amulet" for amulets.');
+    } else {
+        equipWeaponOrArmor(command);
+    }
         }
 
         function useLockpicks() {
