@@ -174,7 +174,7 @@
             { name: 'Shield Bash', damage: 60, cost: 20, type: 'stun', description: 'Stun enemy for one turn', class: 'warrior' },
             { name: 'Poison Blade', damage: 30, cost: 20, type: 'poison', duration: 3, description: 'Poison damages 5 per turn for 3 turns', class: 'rogue' },
             { name: 'Chain Lightning', damage: 75, cost: 30, type: 'damage', description: 'Devastating lightning attack', class: 'mage' },
-            { name: 'Arcane Missiles', damage: 42, cost: 18, type: 'damage', description: 'Multiple magic missiles', class: 'mage' },
+            { name: 'Arcane Missiles', damage: 42, cost: 18, type: 'aoe', description: 'Magic missiles hit all enemies', class: 'mage' },
             { name: 'Whirlwind', damage: 48, cost: 25, type: 'damage', description: 'Spin attack dealing massive damage', class: 'warrior' },
             { name: 'Shadow Strike', damage: 32, cost: 22, type: 'damage', description: 'Strike from the shadows', class: 'rogue' }
         ];
@@ -942,6 +942,40 @@
                 ], () => {
                     if (game.combat.enemy.health <= 0) {
                         setTimeout(() => combatVictory(), 1000);
+                    } else {
+                        setTimeout(() => enemyTurn(), 1000);
+                    }
+                });
+                } else if (spellToCast.type === 'aoe') {
+                let levelBonus = game.player.class === 'mage' ? game.player.level * 6 : game.player.level * 5;
+                const totalDamage = spellToCast.damage + levelBonus;
+                
+                game.combat.enemy.health -= totalDamage;
+                
+                let messages = [
+                    `You cast ${spellToCast.name}!`,
+                    `${totalDamage} damage to ${game.combat.enemy.name}!`
+                ];
+                
+                if (game.combat.secondEnemy && game.combat.secondEnemy.health > 0) {
+                    game.combat.secondEnemy.health -= totalDamage;
+                    messages.push(`${totalDamage} damage to ${game.combat.secondEnemy.name}!`);
+                }
+                
+                messages.push(`${game.combat.enemy.name} has ${Math.max(0, game.combat.enemy.health)} health left.`);
+                if (game.combat.secondEnemy && game.combat.secondEnemy.health > 0) {
+                    messages.push(`${game.combat.secondEnemy.name} has ${Math.max(0, game.combat.secondEnemy.health)} health left.`);
+                }
+                
+                speakSequence(messages, () => {
+                    if (game.combat.enemy.health <= 0 && (!game.combat.secondEnemy || game.combat.secondEnemy.health <= 0)) {
+                        setTimeout(() => combatVictory(), 1000);
+                    } else if (game.combat.enemy.health <= 0 && game.combat.secondEnemy && game.combat.secondEnemy.health > 0) {
+                        game.combat.enemy = game.combat.secondEnemy;
+                        game.combat.secondEnemy = null;
+                        speak(`${game.combat.enemy.name} remains!`, () => {
+                            setTimeout(() => enemyTurn(), 1000);
+                        });
                     } else {
                         setTimeout(() => enemyTurn(), 1000);
                     }
