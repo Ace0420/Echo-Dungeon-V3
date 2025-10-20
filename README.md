@@ -6,7 +6,7 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 
 **Start the game:**
 1. Open `index.html` in **Chrome or Edge** (voice recognition required)
-2. **Click the big red button** or press **Spacebar** to speak
+2. **Click anywhere** or press **Spacebar** to speak
 3. **Choose your class**: Say "warrior", "mage", or "rogue"
 
 **Voice Commands:**
@@ -48,7 +48,7 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 ## 📱 Accessibility Features
 
 - **Voice-first design**: No mouse/keyboard needed beyond initial activation
-- **High contrast colors**: Red button (#ff4444) on black background (#000000)
+- **High contrast colors**: Full screen, tap anywhere to interact on black background (#000000) green screen when listening. 
 - **Large touch targets**: Easy to tap on mobile devices
 - **Screen reader friendly**: ARIA labels and live regions
 - **Keyboard support**: Spacebar activates voice recognition
