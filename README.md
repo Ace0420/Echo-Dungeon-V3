@@ -33,7 +33,7 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 
 1. **No setup required** - just open `index.html` in Chrome/Edge
 2. **Grant microphone permission** when prompted
-3. **Tap anywhereonthescreen** or **Spacebar**
+3. **Tap anywhere on the screen** or **Spacebar**
 4. **Say "warrior", "mage", or "rogue"** to begin your adventure!
 
 ## 🎯 Game Features
