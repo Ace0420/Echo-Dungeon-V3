@@ -20,7 +20,7 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 - **Help**: "help", "commands", "what can I do"
 
 **Visual Guide:**
-- **Red button** = Ready to speak (click or press Spacebar)
+- **Tap anywhere** = Ready to speak (click or press Spacebar)
 - **Green button** = Listening to your voice
 
 ## 🎤 Voice Tips
@@ -33,7 +33,7 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 
 1. **No setup required** - just open `index.html` in Chrome/Edge
 2. **Grant microphone permission** when prompted
-3. **Press the big red button** or **Spacebar**
+3. **Tap anywhereonthescreen** or **Spacebar**
 4. **Say "warrior", "mage", or "rogue"** to begin your adventure!
 
 ## 🎯 Game Features
@@ -43,7 +43,7 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 - **Turn-based combat**: Voice-controlled battles with dice rolls
 - **Inventory system**: Collect and use potions, treasures, and artifacts
 - **Death & resurrection**: Never truly stuck - always respawn at the entrance
-- **High contrast interface**: Simple red button on black background
+- **High contrast interface**: Easy full screen tap, black background
 
 ## 📱 Accessibility Features
 
