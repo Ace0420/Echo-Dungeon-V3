@@ -6,7 +6,7 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 
 **Start the game:**
 1. Open `index.html` in **Chrome or Edge** (voice recognition required)
-2. **Click the big red button** or press **Spacebar** to speak
+2. **Click anywhere** or press **Spacebar** to speak
 3. **Choose your class**: Say "warrior", "mage", or "rogue"
 
 **Voice Commands:**
@@ -20,7 +20,7 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 - **Help**: "help", "commands", "what can I do"
 
 **Visual Guide:**
-- **Red button** = Ready to speak (click or press Spacebar)
+- **Tap anywhere** = Ready to speak (click or press Spacebar)
 - **Green button** = Listening to your voice
 
 ## 🎤 Voice Tips
@@ -33,7 +33,7 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 
 1. **No setup required** - just open `index.html` in Chrome/Edge
 2. **Grant microphone permission** when prompted
-3. **Press the big red button** or **Spacebar**
+3. **Tap anywhere on the screen** or **Spacebar**
 4. **Say "warrior", "mage", or "rogue"** to begin your adventure!
 
 ## 🎯 Game Features
@@ -43,12 +43,12 @@ A fully voice-controlled dungeon crawler designed for accessibility. Explore anc
 - **Turn-based combat**: Voice-controlled battles with dice rolls
 - **Inventory system**: Collect and use potions, treasures, and artifacts
 - **Death & resurrection**: Never truly stuck - always respawn at the entrance
-- **High contrast interface**: Simple red button on black background
+- **High contrast interface**: Easy full screen tap, black background
 
 ## 📱 Accessibility Features
 
 - **Voice-first design**: No mouse/keyboard needed beyond initial activation
-- **High contrast colors**: Red button (#ff4444) on black background (#000000)
+- **High contrast colors**: Full screen, tap anywhere to interact on black background (#000000) green screen when listening. 
 - **Large touch targets**: Easy to tap on mobile devices
 - **Screen reader friendly**: ARIA labels and live regions
 - **Keyboard support**: Spacebar activates voice recognition

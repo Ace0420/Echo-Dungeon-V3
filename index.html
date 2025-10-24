@@ -990,18 +990,20 @@
                     `You strike from the shadows!`,
                     `${totalDamage} damage!`,
                     `The enemy doesn't see you coming!`,
-                    `${game.combat.enemy.name} has ${Math.max(0, game.combat.enemy.health)} health left.`
+                    `${game.combat.enemy.name} has ${Math.max(0, game.combat.enemy.health)} health left.`,
+                    `You vanish before they can counter!`
                 ], () => {
                     if (game.combat.enemy.health <= 0) {
                         if (game.combat.secondEnemy && game.combat.secondEnemy.health > 0) {
                             game.combat.enemy = game.combat.secondEnemy;
                             game.combat.secondEnemy = null;
-                            speak(`${game.combat.enemy.name} remains! Health: ${game.combat.enemy.health}.`);
+                            setTimeout(() => speak(`${game.combat.enemy.name} remains! Health: ${game.combat.enemy.health}. What will you do?`), 500);
                         } else {
                             setTimeout(() => combatVictory(), 1000);
                         }
                     } else {
-                        speak('You vanish before they can counter!');
+                        // Sneak attack - player gets another turn WITHOUT enemy attacking
+                        setTimeout(() => speak('What will you do?'), 500);
                     }
                 });
             } else if (spellToCast.type === 'damage') {
