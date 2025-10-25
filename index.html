@@ -278,21 +278,21 @@
         };
 
         const enemies = {
-            goblin: { name: 'Goblin', health: 30, damage: 8, gold: 5, exp: 15, fleeChance: 0.8 },
-            skeleton: { name: 'Skeleton', health: 40, damage: 10, gold: 8, exp: 20, fleeChance: 0.7 },
-            orc: { name: 'Orc', health: 60, damage: 15, gold: 12, exp: 30, fleeChance: 0.5 },
-            wraith: { name: 'Wraith', health: 50, damage: 18, gold: 15, exp: 35, fleeChance: 0.6 },
-            troll: { name: 'Troll', health: 80, damage: 20, gold: 20, exp: 45, fleeChance: 0.4, regenerate: 5 },
-            dragon: { name: 'Dragon', health: 150, damage: 30, gold: 50, exp: 100, fleeChance: 0.1 },
+            goblin: { name: 'Goblin', health: 30, damage: 8, gold: 5, exp: 25, fleeChance: 0.8 },
+            skeleton: { name: 'Skeleton', health: 40, damage: 10, gold: 8, exp: 30, fleeChance: 0.7 },
+            orc: { name: 'Orc', health: 60, damage: 15, gold: 12, exp: 50, fleeChance: 0.5 },
+            wraith: { name: 'Wraith', health: 50, damage: 18, gold: 15, exp: 75, fleeChance: 0.6 },
+            troll: { name: 'Troll', health: 80, damage: 20, gold: 20, exp: 65, fleeChance: 0.4, regenerate: 5 },
+            dragon: { name: 'Dragon', health: 150, damage: 30, gold: 50, exp: 250, fleeChance: 0.1 },
             demon: { name: 'Demon', health: 120, damage: 28, gold: 45, exp: 80, fleeChance: 0.3 },
-            vampire: { name: 'Vampire', health: 100, damage: 25, gold: 40, exp: 70, fleeChance: 0.4, regenerate: 8 },
-            orcChieftain: { name: 'Orc Chieftain', health: 100, damage: 22, gold: 25, exp: 50, fleeChance: 0.3 },
-            ancientWraith: { name: 'Ancient Wraith', health: 90, damage: 26, gold: 30, exp: 60, fleeChance: 0.4 },
-            elderTroll: { name: 'Elder Troll', health: 150, damage: 28, gold: 40, exp: 75, fleeChance: 0.2, regenerate: 10 },
-            archDemon: { name: 'Arch Demon', health: 180, damage: 35, gold: 70, exp: 120, fleeChance: 0.2 },
-            hydra: { name: 'Hydra', health: 140, damage: 30, gold: 55, exp: 90, fleeChance: 0.3, regenerate: 12 },
-            phoenixGuardian: { name: 'Phoenix Guardian', health: 130, damage: 32, gold: 60, exp: 95, fleeChance: 0.3, regenerate: 15 },
-            lichKing: { name: 'Lich King', health: 160, damage: 38, gold: 80, exp: 130, fleeChance: 0.1, regenerate: 10 }
+            vampire: { name: 'Vampire', health: 100, damage: 25, gold: 40, exp: 100, fleeChance: 0.4, regenerate: 8 },
+            orcChieftain: { name: 'Orc Chieftain', health: 100, damage: 22, gold: 25, exp: 65, fleeChance: 0.3 },
+            ancientWraith: { name: 'Ancient Wraith', health: 90, damage: 26, gold: 30, exp: 80, fleeChance: 0.4 },
+            elderTroll: { name: 'Elder Troll', health: 150, damage: 28, gold: 40, exp: 100, fleeChance: 0.2, regenerate: 10 },
+            archDemon: { name: 'Arch Demon', health: 180, damage: 35, gold: 70, exp: 160, fleeChance: 0.2 },
+            hydra: { name: 'Hydra', health: 140, damage: 30, experience 125, fleeChance: 0.3, regenerate: 12 },
+            phoenixGuardian: { name: 'Phoenix Guardian', health: 130, damage: 32, gold: 60, exp: 145, fleeChance: 0.3, regenerate: 15 },
+            lichKing: { name: 'Lich King', health: 160, damage: 38, gold: 80, exp: 185, fleeChance: 0.1, regenerate: 10 }
         };
 
         const treasures = [
@@ -320,8 +320,8 @@
         const merchantItems = [
             { name: 'Health Potion', type: 'potion', price: 30 },
             { name: 'Mana Potion', type: 'potion', price: 25 },
-            { name: 'Greater Health Potion', type: 'potion', price: 60, healing: 80 },
-            { name: 'Greater Mana Potion', type: 'potion', price: 50, mana: 60 }
+            { name: 'Greater Health', type: 'potion', price: 60, healing: 100 },
+            { name: 'Greater Mana', type: 'potion', price: 50, mana: 75 }
         ];
 
         function speak(text, callback) {
@@ -487,7 +487,7 @@
                 if (command.includes('leave') || command.includes('exit') || command.includes('close')) {
                     game.merchantOpen = false;
                     speak('You leave the merchant.');
-                } else if (command.includes('buy')) {
+                } else if (command.includes('buy, purchase,')) {
                     buyFromMerchant(command);
                 } else if (command.includes('sell')) {
                     sellToMerchant(command);
@@ -565,9 +565,9 @@
             let itemToBuy = null;
             
             if (command.includes('greater health')) {
-                itemToBuy = merchantItems.find(i => i.name === 'Greater Health Potion');
+                itemToBuy = merchantItems.find(i => i.name === 'Greater Health');
             } else if (command.includes('greater mana')) {
-                itemToBuy = merchantItems.find(i => i.name === 'Greater Mana Potion');
+                itemToBuy = merchantItems.find(i => i.name === 'Greater Mana');
             } else if (command.includes('health')) {
                 itemToBuy = merchantItems.find(i => i.name === 'Health Potion');
             } else if (command.includes('mana')) {
@@ -654,7 +654,7 @@
         function levelUp() {
             game.player.level++;
             game.player.experience -= game.player.experienceToNext;
-            game.player.experienceToNext = Math.floor(game.player.experienceToNext * 1.5);
+            game.player.experienceToNext = Math.floor(game.player.experienceToNext * 1.25);
             
             const healthGain = 20;
             const manaGain = 10;
@@ -700,8 +700,8 @@
                 return;
             }
 
-            if (game.player.equippedRings.length >= 2) {
-                speak(`You already have 2 rings equipped. You must remove one first.`);
+            if (game.player.equippedRings.length >= 10) {
+                speak(`You already have 10 rings equipped. You must remove one first.`);
                 return;
             }
 
@@ -2204,7 +2204,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkBrowserSupport();
             setTimeout(() => {
-                speak('Echo Dungeon Enhanced is ready. Tap the screen to begin.');
+                speak('Echo Dungeon V3 is ready Lisa. Tap the screen to begin.');
             }, 1000);
         });
 
