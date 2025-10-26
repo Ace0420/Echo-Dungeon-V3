@@ -1258,8 +1258,8 @@
             const currentLevel = game.dungeon.currentLevel;
             game.dungeon.grid = {};
             
-            const centerX = 5; 
-            const centerY = 5;
+            const centerX = 6; 
+            const centerY = 6;
             
             for (let x = 0; x < size; x++) {
                 for (let y = 0; y < size; y++) {
@@ -1687,30 +1687,31 @@
         }
 
         function startCombat(enemy, secondEnemy = null) {
-            game.combat = { 
-                enemy: { ...enemy }, 
-                secondEnemy: secondEnemy ? { ...secondEnemy } : null,
-                playerDefending: false 
-            };
-            game.phase = 'combat';
-            
-            let messages = [`Combat begins!`, `${enemy.name} has ${enemy.health} health.`];
-            
-            if (secondEnemy) {
-                messages.push(`${secondEnemy.name} has ${secondEnemy.health} health.`);
-                messages.push(`You face two enemies!`);
-            }
-            
-            if (enemy.regenerate) {
-                messages.push(`Warning: ${enemy.name} regenerates ${enemy.regenerate} health per turn!`);
-            }
-            if (secondEnemy && secondEnemy.regenerate) {
-                messages.push(`Warning: ${secondEnemy.name} regenerates ${secondEnemy.regenerate} health per turn!`);
-            }
-            
-            messages.push(`What will you do? Attack, defend, special, cast spell, use potion, or flee.`);
-            
-            speakSequence(messages);
+    game.combat = { 
+        enemy: { ...enemy }, 
+        secondEnemy: secondEnemy ? { ...secondEnemy } : null,
+        playerDefending: false,
+        twoEnemyFight: secondEnemy ? true : false  // Track if this started as a 2-enemy fight
+    };
+    game.phase = 'combat';
+    
+    let messages = [`Combat begins!`, `${enemy.name} has ${enemy.health} health.`];
+    
+    if (secondEnemy) {
+        messages.push(`${secondEnemy.name} has ${secondEnemy.health} health.`);
+        messages.push(`You face two enemies!`);
+    }
+    
+    if (enemy.regenerate) {
+        messages.push(`Warning: ${enemy.name} regenerates ${enemy.regenerate} health per turn!`);
+    }
+    if (secondEnemy && secondEnemy.regenerate) {
+        messages.push(`Warning: ${secondEnemy.name} regenerates ${secondEnemy.regenerate} health per turn!`);
+    }
+    
+    messages.push(`What will you do? Attack, defend, special, cast spell, use potion, or flee.`);
+    
+    speakSequence(messages);
         }
         
         function processPotionCommand(command) {
@@ -2000,33 +2001,46 @@
         }
 
         function combatVictory() {
-            const gold = game.combat.enemy.gold;
-            const exp = game.combat.enemy.exp;
-            game.player.gold += gold;
-            
-            if (game.currentRoom.enemy) {
-                game.currentRoom.enemy.health = 0;
-            }
-            if (game.currentRoom.secondEnemy) {
-                game.currentRoom.secondEnemy.health = 0;
-            }
-            
-            speakSequence([
-                `${game.combat.enemy.name} defeated!`,
-                `You gain ${gold} gold and ${exp} experience!`
-            ], () => {
-                game.combat = null;
-                game.phase = 'exploration';
-                gainExperience(exp);
-                
-                if (game.currentRoom.type === 'boss') {
-                    setTimeout(() => dungeonComplete(), 1500);
-                } else {
-                    setTimeout(() => speak('What will you do next?'), 1000);
-                }
-            });
+    const gold = game.combat.enemy.gold;
+    let exp = game.combat.enemy.exp;
+    
+    // Check if this was a 2-enemy fight
+    const wasTwoEnemyFight = game.combat.twoEnemyFight || false;
+    
+    if (wasTwoEnemyFight) {
+        exp = exp * 2;
+    }
+    
+    game.player.gold += gold;
+    
+    if (game.currentRoom.enemy) {
+        game.currentRoom.enemy.health = 0;
+    }
+    if (game.currentRoom.secondEnemy) {
+        game.currentRoom.secondEnemy.health = 0;
+    }
+    
+    const messages = [
+        `${game.combat.enemy.name} defeated!`,
+        `You gain ${gold} gold and ${exp} experience!`
+    ];
+    
+    if (wasTwoEnemyFight) {
+        messages.push(`Double experience for defeating 2 enemies!`);
+    }
+    
+    speakSequence(messages, () => {
+        game.combat = null;
+        game.phase = 'exploration';
+        gainExperience(exp);
+        
+        if (game.currentRoom.type === 'boss') {
+            setTimeout(() => dungeonComplete(), 1500);
+        } else {
+            setTimeout(() => speak('What will you do next?'), 1000);
         }
-
+    });
+        }
         function dungeonComplete() {
             speakSequence([
                 'You defeated the boss!',
