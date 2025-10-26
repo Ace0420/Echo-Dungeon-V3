@@ -700,22 +700,16 @@
         return;
     }
 
-    // Initialize equippedRings if it doesn't exist
-    if (!game.player.equippedRings) {
-        game.player.equippedRings = [];
-    }
-
-    // Check how many of THIS SPECIFIC ring are already equipped
-    const equippedCount = game.player.equippedRings.filter(r => r === ringName).length;
-    
-    if (equippedCount >= 2) {
-        speak(`You already have 2 ${ringName}s equipped. You cannot stack more than 2 identical rings.`);
+    if (game.player.equippedRings.length >= 10) {
+        speak(`You already have 10 rings equipped. You must remove one first.`);
         return;
     }
 
-    // Check total ring count
-    if (game.player.equippedRings.length >= 10) {
-        speak(`You already have 10 rings equipped. You must remove one first.`);
+    // Check how many of THIS specific ring are already equipped
+    const equippedCount = game.player.equippedRings.filter(r => r === ringName).length;
+    
+    if (equippedCount >= 2) {
+        speak(`You already have 2 ${ringName} equipped. You can only stack 2 of the same ring.`);
         return;
     }
 
@@ -727,7 +721,6 @@
 
     game.player.inventory.splice(ringIndex, 1);
     game.player.equippedRings.push(ringName);
-
     if (ringData.stat === 'maxHealth') {
         game.player.maxHealth += ringData.value;
         game.player.health += ringData.value;
