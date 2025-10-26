@@ -673,60 +673,73 @@
         }
 
         function equipRing(command) {
-            const ringName = command.includes('vitality') || command.includes('health') ? 'Ring of Vitality' :
-                             command.includes('minor mana') || command.includes('mana ring') ? 'Ring of Minor Mana' :
-                             command.includes('protection') ? 'Ring of Protection' :
-                             command.includes('strength') ? 'Ring of Strength' :
-                             command.includes('wisdom') ? 'Ring of Wisdom' :
-                             command.includes('titan') ? 'Ring of the Titan' :
-                             command.includes('arcane power') ? 'Ring of Arcane Power' :
-                             command.includes('berserker') ? 'Ring of the Berserker' : null;
+    const ringName = command.includes('vitality') || command.includes('health') ? 'Ring of Vitality' :
+                     command.includes('minor mana') || command.includes('mana ring') ? 'Ring of Minor Mana' :
+                     command.includes('protection') ? 'Ring of Protection' :
+                     command.includes('strength') ? 'Ring of Strength' :
+                     command.includes('wisdom') ? 'Ring of Wisdom' :
+                     command.includes('titan') ? 'Ring of the Titan' :
+                     command.includes('arcane power') ? 'Ring of Arcane Power' :
+                     command.includes('berserker') ? 'Ring of the Berserker' : null;
 
-            if (!ringName) {
-                const availableRings = game.player.inventory.filter(item => 
-                    rings.some(r => r.name === item)
-                );
-                if (availableRings.length > 0) {
-                    speak(`You have: ${availableRings.join(', ')}. Say which one to equip.`);
-                } else {
-                    speak('You have no rings. Find them in treasure chests or by searching rooms.');
-                }
-                return;
-            }
-
-            const ringIndex = game.player.inventory.findIndex(item => item === ringName);
-            if (ringIndex === -1) {
-                speak(`You do not have a ${ringName}.`);
-                return;
-            }
-
-            if (game.player.equippedRings.length >= 10) {
-                speak(`You already have 10 rings equipped. You must remove one first.`);
-                return;
-            }
-
-            const ringData = rings.find(r => r.name === ringName);
-            if (!ringData) {
-                speak(`Error: Ring data not found.`);
-                return;
-            }
-
-            game.player.inventory.splice(ringIndex, 1);
-            game.player.equippedRings.push(ringName);
-
-            if (ringData.stat === 'maxHealth') {
-                game.player.maxHealth += ringData.value;
-                game.player.health += ringData.value;
-                speak(`You equip the ${ringName}. Your max health increased by ${ringData.value}!`);
-            } else if (ringData.stat === 'maxMana') {
-                game.player.maxMana += ringData.value;
-                game.player.mana += ringData.value;
-                speak(`You equip the ${ringName}. Your max mana increased by ${ringData.value}!`);
-            } else if (ringData.stat === 'attack') {
-                speak(`You equip the ${ringName}. Your attacks are now stronger!`);
-            }
+    if (!ringName) {
+        const availableRings = game.player.inventory.filter(item => 
+            rings.some(r => r.name === item)
+        );
+        if (availableRings.length > 0) {
+            speak(`You have: ${availableRings.join(', ')}. Say which one to equip.`);
+        } else {
+            speak('You have no rings. Find them in treasure chests or by searching rooms.');
         }
+        return;
+    }
 
+    const ringIndex = game.player.inventory.findIndex(item => item === ringName);
+    if (ringIndex === -1) {
+        speak(`You do not have a ${ringName}.`);
+        return;
+    }
+
+    // Initialize equippedRings if it doesn't exist
+    if (!game.player.equippedRings) {
+        game.player.equippedRings = [];
+    }
+
+    // Check how many of THIS SPECIFIC ring are already equipped
+    const equippedCount = game.player.equippedRings.filter(r => r === ringName).length;
+    
+    if (equippedCount >= 2) {
+        speak(`You already have 2 ${ringName}s equipped. You cannot stack more than 2 identical rings.`);
+        return;
+    }
+
+    // Check total ring count
+    if (game.player.equippedRings.length >= 10) {
+        speak(`You already have 10 rings equipped. You must remove one first.`);
+        return;
+    }
+
+    const ringData = rings.find(r => r.name === ringName);
+    if (!ringData) {
+        speak(`Error: Ring data not found.`);
+        return;
+    }
+
+    game.player.inventory.splice(ringIndex, 1);
+    game.player.equippedRings.push(ringName);
+
+    if (ringData.stat === 'maxHealth') {
+        game.player.maxHealth += ringData.value;
+        game.player.health += ringData.value;
+        speak(`You equip the ${ringName}. Your max health increased by ${ringData.value}! You have ${game.player.equippedRings.length} rings equipped.`);
+    } else if (ringData.stat === 'maxMana') {
+        game.player.maxMana += ringData.value;
+        game.player.mana += ringData.value;
+        speak(`You equip the ${ringName}. Your max mana increased by ${ringData.value}! You have ${game.player.equippedRings.length} rings equipped.`);
+    } else if (ringData.stat === 'attack') {
+        speak(`You equip the ${ringName}. Your attacks are now stronger! You have ${game.player.equippedRings.length} rings equipped.`);
+    }
+        }
         function equipAmulet(command) {
             const amuletName = command.includes('vitality') ? 'Amulet of Vitality' :
                                command.includes('amulet of mana') || command.includes('mana') && !command.includes('archmage') ? 'Amulet of Mana' :
