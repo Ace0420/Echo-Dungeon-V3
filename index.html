@@ -995,6 +995,7 @@
                 speakSequence([
                     `You strike from the shadows!`,
                     `${totalDamage} damage!`,
+                    game.combat.extraTurn = true;
                     `The enemy doesn't see you coming!`,
                     `${game.combat.enemy.name} has ${Math.max(0, game.combat.enemy.health)} health left.`,
                     `You vanish before they can counter!`
@@ -1008,8 +1009,16 @@
                             setTimeout(() => combatVictory(), 1000);
                         }
                     } else {
-                        // Sneak attack - player gets another turn WITHOUT enemy attacking
-                        setTimeout(() => speak('What will you do?'), 500);
+            // Sneak attack - check if we should skip enemy turn
+            if (game.combat && game.combat.extraTurn) {
+                game.combat.extraTurn = false;
+            }
+            if (game.combat.extraTurn) {
+                    game.combat.extraTurn = false;
+                    setTimeout(() => speak('What will you do?'), 500);
+                } else {
+                    setTimeout(() => enemyTurn(), 1000);
+        }
                     }
                 });
             } else if (spellToCast.type === 'damage') {
@@ -1698,6 +1707,7 @@
         secondEnemy: secondEnemy ? { ...secondEnemy } : null,
         playerDefending: false,
         twoEnemyFight: secondEnemy ? true : false  // Track if this started as a 2-enemy fight
+        extraTurn: false
     };
     game.phase = 'combat';
     
