@@ -290,7 +290,7 @@
             ancientWraith: { name: 'Ancient Wraith', health: 90, damage: 26, gold: 30, exp: 80, fleeChance: 0.4 },
             elderTroll: { name: 'Elder Troll', health: 150, damage: 28, gold: 40, exp: 100, fleeChance: 0.2, regenerate: 10 },
             archDemon: { name: 'Arch Demon', health: 180, damage: 35, gold: 70, exp: 160, fleeChance: 0.2 },
-            hydra: { name: 'Hydra', health: 140, damage: 30, experience 125, fleeChance: 0.3, regenerate: 12 },
+            hydra: { name: 'Hydra', health: 140, damage: 30, exp: 125, fleeChance: 0.3, regenerate: 12 },
             phoenixGuardian: { name: 'Phoenix Guardian', health: 130, damage: 32, gold: 60, exp: 145, fleeChance: 0.3, regenerate: 15 },
             lichKing: { name: 'Lich King', health: 160, damage: 38, gold: 80, exp: 185, fleeChance: 0.1, regenerate: 10 }
         };
@@ -310,11 +310,11 @@
             { name: 'Ring of Vitality', effect: '+10 Max Health', stat: 'maxHealth', value: 10 },
             { name: 'Ring of Minor Mana', effect: '+40 Max Mana', stat: 'maxMana', value: 10 },
             { name: 'Ring of Protection', effect: '+50 Max Health', stat: 'maxHealth', value: 5 },
-            { name: 'Ring of Strength', effect: '+2 Attack Damage', stat: 'attack', value: 2 },
-            { name: 'Ring of Wisdom', effect: '+5 Max Mana', stat: 'maxMana', value: 5 },
+            { name: 'Ring of Strength', effect: '+4 Attack Damage', stat: 'attack', value: 2 },
+            { name: 'Ring of Wisdom', effect: '+8 Max Mana', stat: 'maxMana', value: 5 },
             { name: 'Ring of the Titan', effect: '+20 Max Health', stat: 'maxHealth', value: 20 },
             { name: 'Ring of Arcane Power', effect: '+15 Max Mana', stat: 'maxMana', value: 15 },
-            { name: 'Ring of the Berserker', effect: '+4 Attack Damage', stat: 'attack', value: 4 }
+            { name: 'Ring of the Berserker', effect: '+6 Attack Damage', stat: 'attack', value: 4 }
         ];
 
         const merchantItems = [
@@ -353,7 +353,7 @@
             }
             const [first, ...rest] = messages;
             speak(first, () => {
-                if (rest.length > 0) {
+                if (rest.length > 10) {
                     setTimeout(() => speakSequence(rest, callback), 500);
                 } else if (callback) {
                     callback();
@@ -455,7 +455,7 @@
         function initializeGame() {
             game.initialized = true;
             micButton.classList.remove('start-button');
-            speak("Welcome to Echo Dungeon Enhanced! Say 'load game' and provide your save PIN, or choose your class: warrior, mage, or rogue."); 
+            speak("Welcome to Echo Dungeon V3! Say 'load game' and provide your save PIN, or choose your class: warrior, mage, or rogue."); 
         }
 
         function handleClick() {
